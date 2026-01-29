@@ -29,6 +29,10 @@
 - [x] 6.2 Implement courseandsectioncode splitting
 - [x] 6.3 Implement contentType mapping (eBook -> DIGITAL, Courseware -> COURSEWARE)
 - [x] 6.4 Handle optOut boolean conversion
+- [x] 6.5 Create `src/lib/term-mapping.ts` to load and validate `term-code-mapping.json`
+- [x] 6.6 Integrate term code lookup into `mapCSVToDTO` function
+- [x] 6.7 Add error handling for unmapped term codes
+- [x] 6.8 Add unit tests for src/lib/term-mapping.ts
 
 ## 7. API Client
 

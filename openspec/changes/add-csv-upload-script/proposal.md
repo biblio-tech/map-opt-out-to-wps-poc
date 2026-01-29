@@ -8,6 +8,7 @@ We need to upload opt-out data from a CSV file to the Watchman API. This is a da
 - Add LogTape-based file logging for request/response audit trail
 - Add environment-based configuration for API credentials
 - Process records one at a time with full logging
+- Add JSON-based term code mapping (`term-code-mapping.json`) to translate CSV term codes (e.g., "Spring 2026") to API-compatible codes (e.g., "2026SP")
 
 ## Impact
 

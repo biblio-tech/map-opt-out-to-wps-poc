@@ -18,7 +18,7 @@ The script SHALL map CSV columns to the Watchman API `OptInOptOutDTO` schema as 
 
 | CSV Column | DTO Field | Transformation |
 |------------|-----------|----------------|
-| term | termCode | Direct copy |
+| term | termCode | Lookup in `term-code-mapping.json` |
 | crn | crn | Direct copy |
 | courseandsectioncode | departmentCode | Split by `-`, take index 0 |
 | courseandsectioncode | courseCode | Split by `-`, take index 1 |
@@ -46,6 +46,14 @@ The script SHALL map CSV columns to the Watchman API `OptInOptOutDTO` schema as 
 #### Scenario: Parse course section code
 - **WHEN** CSV courseandsectioncode is "SW-685-MOL2"
 - **THEN** departmentCode SHALL be "SW", courseCode SHALL be "685", sectionCode SHALL be "MOL2"
+
+#### Scenario: Map term code via lookup
+- **WHEN** CSV term is "Spring 2026"
+- **THEN** the DTO termCode SHALL be looked up from `term-code-mapping.json` and resolve to "2026SP"
+
+#### Scenario: Unknown term code fails
+- **WHEN** CSV term value is not found in `term-code-mapping.json`
+- **THEN** the script SHALL log an error and skip the record
 
 ### Requirement: API Authentication
 
@@ -86,6 +94,22 @@ The script SHALL log all requests and responses to a timestamped file using LogT
 #### Scenario: Final summary
 - **WHEN** processing completes
 - **THEN** the script SHALL output a summary: total records, successful uploads, failed uploads
+
+### Requirement: Term Code Mapping
+
+The script SHALL use a JSON mapping file to translate CSV term codes to API-compatible term codes.
+
+#### Scenario: Load term code mapping
+- **WHEN** the script starts
+- **THEN** it SHALL load `term-code-mapping.json` from the project root directory
+
+#### Scenario: Mapping file structure
+- **WHEN** the mapping file is loaded
+- **THEN** it SHALL contain a `mappings` object where keys are CSV term values and values are API term codes
+
+#### Scenario: Missing mapping file
+- **WHEN** `term-code-mapping.json` does not exist
+- **THEN** the script SHALL exit with an error message indicating the file path
 
 ### Requirement: Configuration
 

@@ -36,38 +36,43 @@ This is a data migration script to upload opt-out records from a CSV file (provi
 ### Decision: Token refresh on 401 only
 **Rationale:** Keep error handling simple. On 401, refresh token and retry once. On other errors, log and continue to next record.
 
+### Decision: External JSON file for term code mapping
+**Rationale:** CSV term codes (e.g., "Spring 2026") don't match the API's expected format. Using a JSON mapping file allows easy updates without code changes. The mapping is loaded at startup and used during field transformation.
+
 ## File Structure
 
 ```
 watchman-opt-out/
 ├── src/
-│   ├── index.ts       # Main entry point
-│   ├── types.ts       # TypeScript interfaces
-│   ├── config.ts      # Environment config
-│   ├── logger.ts      # LogTape setup
-│   ├── csv-parser.ts  # CSV parsing
-│   ├── mapper.ts      # CSV to DTO mapping
-│   ├── auth.ts        # Token management
-│   └── api.ts         # API client
-├── logs/              # Output directory (gitignored)
-├── .env               # Local config (gitignored)
-├── .env.example       # Template
+│   ├── index.ts           # Main entry point
+│   ├── types.ts           # TypeScript interfaces
+│   ├── config.ts          # Environment config
+│   ├── logger.ts          # LogTape setup
+│   ├── csv-parser.ts      # CSV parsing
+│   ├── mapper.ts          # CSV to DTO mapping
+│   ├── term-mapping.ts    # Term code mapping loader
+│   ├── auth.ts            # Token management
+│   └── api.ts             # API client
+├── logs/                  # Output directory (gitignored)
+├── .env                   # Local config (gitignored)
+├── .env.example           # Template
+├── term-code-mapping.json # CSV to API term code mappings
 ├── package.json
 ├── tsconfig.json
-└── opt-outs.csv       # Input data
+└── opt-outs.csv           # Input data
 ```
 
 ## Data Flow
 
 ```
-opt-outs.csv
+opt-outs.csv + term-code-mapping.json
     │
     ▼
 parseCSV() → CSVRow[]
     │
     ▼
 mapCSVToDTO() → OptInOptOutDTO
-    │
+    │        (uses term mapping lookup)
     ▼
 postOptOut() → Watchman API
     │
