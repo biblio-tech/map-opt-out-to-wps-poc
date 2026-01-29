@@ -1,0 +1,3840 @@
+{
+    "swagger": "2.0",
+    "info": {
+        "version": "1.0.0",
+        "title": "Watchman Payment Systems Auth Cart REST API"
+    },
+    "basePath": "/wps/rest/cart",
+    "tags": [
+        {
+            "name": "Admin",
+            "description": "The cart endpoints include the endpoints necessary for administrative purposes. <br/> As with all other areas of the system, the token endpoint is used to generate a token with a valid key and secret pair. All subsequent admin operations using that token must either use the same key or a sibling key. The status endpoint shows if the API is up or down. <br/> The create invoice endpoint is used to create an invoice from the passed in Payment object.\nInstructions for testing using our Mock keys:  https://internal.watchmantech.com/confluence/in/test-data\nTo see the Mock Categories and amounts available: https://internal.watchmantech.com/confluence/in/test-data/mock-categories"
+        },
+        {
+            "name": "Summary",
+            "description": "The cart endpoints include the endpoints necessary to test and complete a transaction. <br/> As with all other areas of the system, the token endpoint is used to generate a token with a valid key and secret pair. All subsequent transactions using that token must either use the same key or a sibling key. The status endpoint shows if the API is up or down. <br/> The balance endpoint is used to retrieve a balance from a third party API. <br/> All transactions, including charges and refunds, go through the same process. A transaction is started with the prepare_transaction endpoint, the response is used (with the addition of payments) to send to the prepare_payment endpoint. Finally, the result from prepare_payments is sent to finalize_payments.<br/> Finally, the test endpoint performs an end-to-end test of a key - to make sure it can communicate with the backends correctly, and that it is set up in any 3rd party systems.\nInstructions for testing using our Mock keys:  https://internal.watchmantech.com/confluence/in/test-data\nTo see the Mock Categories and amounts available: https://internal.watchmantech.com/confluence/in/test-data/mock-categories"
+        }
+    ],
+    "paths": {
+        "/v1/admin/status": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "operationId": "getStatus",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "successful operation",
+                        "headers": {},
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/currentReconciliation": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get's the current Active reconciliation for the logged in key or the client uuid passed in.",
+                "description": "",
+                "operationId": "getCurrentReconciliation",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "clientUuid",
+                        "in": "query",
+                        "description": "The client UUID to get the reconciliation for.",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "approved",
+                        "in": "query",
+                        "description": "Set to true if the most recent is approved.",
+                        "required": false,
+                        "type": "boolean"
+                    }
+                ],
+                "responses": {
+                    "default": {
+                        "description": "successful operation"
+                    }
+                }
+            }
+        },
+        "/v1/admin/create_invoice": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Create an invoice for a specific set of charges and payments",
+                "description": "Creates an Invoice from the passed in Payment object.\nThis is to be used for creation of an invoice where the transaction was completed by a different API.\nThe Cart API and it's relatives, create an invoice upon capture.",
+                "operationId": "createInvoice",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "The prepared packet to create invoice. Must have already completed the transaction through another channel.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/PaymentPacket"
+                        }
+                    }
+                ],
+                "responses": {
+                    "403": {
+                        "description": "You need admin access - and don't have it."
+                    },
+                    "400": {
+                        "description": "You are trying to create an invoice you're not authorized to create invoices"
+                    },
+                    "409": {
+                        "description": "There was an error with the request"
+                    },
+                    "200": {
+                        "description": "Return updated packet with invoice details showing results.",
+                        "schema": {
+                            "$ref": "#/definitions/PaymentPacket"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/adoption/{term}": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Retrieves the adoptions for the passed parameters.",
+                "description": "",
+                "operationId": "getAdoptions",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "term",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "clientUuid",
+                        "in": "query",
+                        "description": "The client UUID to set the adoption for. Will default to the logged in client.",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "crn",
+                        "in": "query",
+                        "description": "CRN to retrieve adoptions for.",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "dept",
+                        "in": "query",
+                        "description": "Department to retrieve adoptions for. Required.",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "course",
+                        "in": "query",
+                        "description": "Course to retrieve adoptions for.",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "section",
+                        "in": "query",
+                        "description": "Section to retrieve adoptions for.",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "itemScanCode",
+                        "in": "query",
+                        "description": "itemScanCode to retrieve adoptions for.",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Page number to retrieve. First page is 0.",
+                        "required": false,
+                        "type": "integer",
+                        "default": 0,
+                        "format": "int32"
+                    },
+                    {
+                        "name": "pageSize",
+                        "in": "query",
+                        "description": "Page size to retrieve. Default 100. Will error over 2000.",
+                        "required": false,
+                        "type": "integer",
+                        "default": 100,
+                        "format": "int32"
+                    }
+                ],
+                "responses": {
+                    "403": {
+                        "description": "You need admin access - and don't have it."
+                    },
+                    "409": {
+                        "description": "There was an error with the request"
+                    },
+                    "200": {
+                        "description": "Return list of adoptions.",
+                        "schema": {
+                            "$ref": "#/definitions/Adoption"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Create adoption for the passed adoption object.",
+                "description": "",
+                "operationId": "createAdoption",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "clientUuid",
+                        "in": "query",
+                        "description": "The client UUID to set the adoption for. Will default to the logged in client.",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "term",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "The adoption to create",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/Adoption"
+                        }
+                    }
+                ],
+                "responses": {
+                    "403": {
+                        "description": "You need admin access - and don't have it."
+                    },
+                    "409": {
+                        "description": "There was an error with the request"
+                    },
+                    "200": {
+                        "description": "Return created adoption",
+                        "schema": {
+                            "$ref": "#/definitions/Adoption"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Deletes the passed in adoption(s). The filtering parameters dictate how many are deleted. The more fields provided the less that are deleted.",
+                "description": "",
+                "operationId": "deleteAdoption",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "clientUuid",
+                        "in": "query",
+                        "description": "The client UUID to set the adoption for. Will default to the logged in client.",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "term",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "crn",
+                        "in": "query",
+                        "description": "CRN to retrieve adoptions for.",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "dept",
+                        "in": "query",
+                        "description": "Department to retrieve adoptions for. Required.",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "course",
+                        "in": "query",
+                        "description": "Course to retrieve adoptions for.",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "section",
+                        "in": "query",
+                        "description": "Section to retrieve adoptions for.",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "ISBN",
+                        "in": "query",
+                        "description": "ISBN to retrieve adoptions for. Required.",
+                        "required": false,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "default": {
+                        "description": "successful operation"
+                    }
+                }
+            }
+        },
+        "/v1/admin/createUpdateAuthIdLookUp": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Returns the saved AuthId for the passed in UUID.",
+                "description": "",
+                "operationId": "createAuthIdLookUp",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "required": false,
+                        "schema": {
+                            "$ref": "#/definitions/AuthIdLookUpDto"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation",
+                        "schema": {
+                            "$ref": "#/definitions/AuthIdLookUpDto"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/cloverApiKey": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Retrieve the logged in key's Clover ApiKey.",
+                "description": "",
+                "operationId": "getCloverApiKey",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "text/html"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "clientUuid",
+                        "in": "query",
+                        "description": "The client to retrieve the Clover ApiKey for, if not the logged in client.",
+                        "required": false,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/opt_out/{term}": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Runs the opt in/out process for the passed entries.",
+                "description": "",
+                "operationId": "runOptOut",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "term",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "clientUuid",
+                        "in": "query",
+                        "description": "The client UUID run the opt out/in process for. Will default to the logged in client.",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "required": false,
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/OptInOptOutDTO"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "403": {
+                        "description": "You need admin access - and don't have it."
+                    },
+                    "409": {
+                        "description": "There was an error with the request"
+                    },
+                    "200": {
+                        "description": "Return list of opt in/out requests and if they were processed or not.",
+                        "schema": {
+                            "$ref": "#/definitions/Adoption"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/checkTermConfigurations": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Runs audit process for AuthVoids.",
+                "description": "",
+                "operationId": "checkTermConfigurations",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "clientUuid",
+                        "in": "query",
+                        "description": "Client uuid for client to check configurations for. Defaults to the logged in key client if not present. Will use the StoreClient for determined client.",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "fillConfigs",
+                        "in": "query",
+                        "description": "Fill term configurations for all existing terms if true.",
+                        "required": false,
+                        "type": "boolean"
+                    },
+                    {
+                        "name": "turnOffAutoApproval",
+                        "in": "query",
+                        "description": "Turns off the auto approval process for the created approval objects if true. Used for testing purposes.",
+                        "required": false,
+                        "type": "boolean"
+                    }
+                ],
+                "responses": {
+                    "default": {
+                        "description": "successful operation"
+                    }
+                }
+            }
+        },
+        "/v1/admin/getAuthId/{uuid}": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Returns the saved AuthId for the passed in UUID.",
+                "description": "",
+                "operationId": "getAuthIdLookUp",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "uuid",
+                        "in": "path",
+                        "description": "UUID for AuthId to find",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation",
+                        "schema": {
+                            "$ref": "#/definitions/AuthIdLookUpDto"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/balance": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Run a balance inquiry with a 3rd party auth api and retrieve the results",
+                "description": "If a resulting category has a 0 amount, then there is no allowed balance for that category. By the same token, a category that does not appear in the resulting list has no allowed balance for that category. It then follows that an empty list or all 0 balances means none available. See @Balance for details on interpreting other values.",
+                "operationId": "getBalance",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "description": "Including this parameter will restrict the balance query to a single category. POS or cart categories are allowed - as well as payment-type specific values that will vary depending on the payment type.",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "turnOffPos",
+                        "in": "query",
+                        "description": "Including this parameter will remove the POS balances from the resulting json",
+                        "required": false,
+                        "type": "boolean"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "required": false,
+                        "schema": {
+                            "$ref": "#/definitions/BalanceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "403": {
+                        "description": "You need admin access - and don't have it."
+                    },
+                    "400": {
+                        "description": "You are trying to get a balance you are not authorized to get."
+                    },
+                    "409": {
+                        "description": "There was an error with the request"
+                    },
+                    "200": {
+                        "description": "Balance inquiry successful. Return list of balances (category and amount)",
+                        "schema": {
+                            "$ref": "#/definitions/BalanceResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/test": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Run an end-to-end test with a 3rd party auth api and retrieve the results",
+                "description": "",
+                "operationId": "testConnection",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "required": false,
+                        "schema": {
+                            "$ref": "#/definitions/TestRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "403": {
+                        "description": "You need admin access - and don't have it."
+                    },
+                    "400": {
+                        "description": "You are trying to run a test you are not authorized to run."
+                    },
+                    "409": {
+                        "description": "There was an error with the request"
+                    },
+                    "200": {
+                        "description": "Test call successful. Return the test object",
+                        "schema": {
+                            "$ref": "#/definitions/TestResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/finalize_transaction_id": {
+            "put": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Changes the transactionId on the invoice.",
+                "description": "This call exists to support systems that don't have a final transactionId until after payments are captured. This method can only be called once per Invoice.",
+                "operationId": "updateTransId",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "original",
+                        "in": "query",
+                        "description": "Original transactionId captured in finalize_payments.",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "final",
+                        "in": "query",
+                        "description": "Final transactionId to update invoice with.",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "409": {
+                        "description": "The Invoice has already been updated."
+                    },
+                    "200": {
+                        "description": "Invoice updated successful."
+                    }
+                }
+            }
+        },
+        "/v1/admin/{apiKey}/token": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Retrieve an auth token for an apikey and an api secret.",
+                "description": "The retrieved token will only be usable for an undefined limited time. If you later get a 401 when using the token, then use this endpoint again to retrieve another token",
+                "operationId": "getToken",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "text/plain",
+                    "application/json",
+                    "application/xml"
+                ],
+                "parameters": [
+                    {
+                        "name": "apiKey",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "description": "Api key secret your were given when the key was generated.",
+                        "required": false,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Token generated successfully",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "No secret supplied."
+                    },
+                    "403": {
+                        "description": "Invalid key, secret supplied."
+                    },
+                    "409": {
+                        "description": "Key Disabled - see message - generate a new ApiKey or contact support."
+                    }
+                }
+            }
+        },
+        "/v1/auth/status": {
+            "get": {
+                "tags": [
+                    "Summary"
+                ],
+                "operationId": "getStatus_1",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "parameters": [],
+                "responses": {
+                    "200": {
+                        "description": "successful operation",
+                        "headers": {},
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/prepare_transaction": {
+            "post": {
+                "tags": [
+                    "Summary"
+                ],
+                "summary": "Run tax calculations for a transaction and prepare it for payment",
+                "description": "You should run this as many times as needed while changing the transaction - adding or removing lines, promotions, etc.",
+                "operationId": "prepareTransaction",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "The transaction to verify and run adjustments and tax for.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/PaymentPacket"
+                        }
+                    }
+                ],
+                "responses": {
+                    "403": {
+                        "description": "You need admin access - and don't have it."
+                    },
+                    "400": {
+                        "description": "Your authorization is denied."
+                    },
+                    "409": {
+                        "description": "There was an error with the request"
+                    },
+                    "200": {
+                        "description": "Authorization successful. Return an authorization - that MUST include the authorizationID - for logging even if there is none passed back from the 3rd party backend",
+                        "schema": {
+                            "$ref": "#/definitions/PaymentPacket"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/captureSignatureFromDevice/{signatureDeviceId}": {
+            "get": {
+                "tags": [
+                    "Summary"
+                ],
+                "summary": "Retrieve captured signature from device. Returns a Base64-encoded PNG string.",
+                "description": "",
+                "operationId": "captureSignatureFromDevice",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "signatureDeviceId",
+                        "in": "path",
+                        "description": "This is the device account number for the signature capture device.",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "captureSignatureApiKey",
+                        "in": "query",
+                        "description": "The signature capture ApiKey. This should be any payment ApiKey that is used for payments related to the capture device. If this is null, we will use the logged in ApiKey. The logged in ApiKey must have permission to access it.",
+                        "required": false,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/sidecar/{customerId}": {
+            "get": {
+                "tags": [
+                    "Summary"
+                ],
+                "summary": "Retrieves customer object using the passed in customerId.",
+                "description": "",
+                "operationId": "getSidecarCustomer",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "customerId",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "403": {
+                        "description": "You need admin access - and don't have it."
+                    },
+                    "400": {
+                        "description": "You are trying to get a customer you're not authorized to get"
+                    },
+                    "409": {
+                        "description": "There was an error with the request"
+                    },
+                    "200": {
+                        "description": "Return customer details.",
+                        "schema": {
+                            "$ref": "#/definitions/SidecarCustomerDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/retrieveTranslatedId/{passedAccount}": {
+            "get": {
+                "tags": [
+                    "Summary"
+                ],
+                "summary": "Retrieve the translated id from the passed account.",
+                "description": "",
+                "operationId": "getTranslatedId",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "passedAccount",
+                        "in": "path",
+                        "description": "The account to get the translated account for. If Clover, this is the device serial number.",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "overrideApiKey",
+                        "in": "query",
+                        "description": "The ApiKey to use if not the logged in ApiKey. The logged in ApiKey must have permission to access it.",
+                        "required": false,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/getIdFromSwipe/{passedAccount}": {
+            "get": {
+                "tags": [
+                    "Summary"
+                ],
+                "summary": "Retrieve the embedded id from a swiped id card.",
+                "description": "",
+                "operationId": "getSwipedId",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "passedAccount",
+                        "in": "path",
+                        "description": "This is the device serial number.",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "overrideApiKey",
+                        "in": "query",
+                        "description": "The ApiKey to use if not the logged in ApiKey. The logged in ApiKey must have permission to access it.",
+                        "required": false,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/retrieveSignature/{uuid}": {
+            "get": {
+                "tags": [
+                    "Summary"
+                ],
+                "summary": "Retrieve captured signature from transaction. Returns a Base64-encoded PNG string.",
+                "description": "",
+                "operationId": "getCapturedSignature",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "uuid",
+                        "in": "path",
+                        "description": "The uuid of the InvoicePayment that has the signature.",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/authRentalCollateral": {
+            "post": {
+                "tags": [
+                    "Summary"
+                ],
+                "summary": "Will get the necessary rental collateral authId that can be used for future recharges. This will look like and act like a normal preparePayments call with one caveat, any voids will be done as part of this process. When the call returns, the storableRechargeToken can be used to make subsequent calls to charge the provided rental collateral payment method.",
+                "description": "",
+                "operationId": "authRentalCollateral",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "The payments and transaction to authorize - note: this would be the same as a regular transaction. ",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/PaymentPacket"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "successful operation",
+                        "schema": {
+                            "$ref": "#/definitions/PaymentPacket"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/prepare_payments": {
+            "post": {
+                "tags": [
+                    "Summary"
+                ],
+                "summary": "Prepare payments for a transaction",
+                "description": "You should call this as many times as necessary until ready to finalize (capture) the transaction.",
+                "operationId": "preparePayments",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "The payments and transaction to authorize - note: negative amounts are refunds. You can't mix refunds and charges.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/PaymentPacket"
+                        }
+                    }
+                ],
+                "responses": {
+                    "403": {
+                        "description": "You need admin access - and don't have it."
+                    },
+                    "400": {
+                        "description": "Your authorization is denied."
+                    },
+                    "409": {
+                        "description": "There was an error with the request"
+                    },
+                    "200": {
+                        "description": "Return the updated cart / order / transaction",
+                        "schema": {
+                            "$ref": "#/definitions/PaymentPacket"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/finalize_payments": {
+            "post": {
+                "tags": [
+                    "Summary"
+                ],
+                "summary": "Capture an invoice for a specific set of charges and payments",
+                "description": "Successful capture requires the creation of an Invoice and a PaymentAggratorTarget.\nNegative amounts are refunds. Charges and refunds can be mixed.\nSome backends may only capture previously authorized transactions. In that case, the charges object may be ignored. It is still required.",
+                "operationId": "doCapture",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "finalTransactionId",
+                        "in": "query",
+                        "description": "Final transactionId to capture with. Can also be passed in body.",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "description": "The prepared packet to capture. Must have already gone through prepare_transaction and prepare_payments as often as needed to be ready for finalization.",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/PaymentPacket"
+                        }
+                    }
+                ],
+                "responses": {
+                    "403": {
+                        "description": "You need admin access - and don't have it."
+                    },
+                    "400": {
+                        "description": "You are trying to get a capture you're not authorized to capture"
+                    },
+                    "409": {
+                        "description": "There was an error with the request"
+                    },
+                    "200": {
+                        "description": "Return updated packet with invoice details showing results.",
+                        "schema": {
+                            "$ref": "#/definitions/PaymentPacket"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/balance": {
+            "post": {
+                "tags": [
+                    "Summary"
+                ],
+                "summary": "Run a balance inquiry with a 3rd party auth api and retrieve the results",
+                "description": "If a resulting category has a 0 amount, then there is no allowed balance for that category. By the same token, a category that does not appear in the resulting list has no allowed balance for that category. It then follows that an empty list or all 0 balances means none available. See @Balance for details on interpreting other values.",
+                "operationId": "getBalance_1",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "category",
+                        "in": "query",
+                        "description": "Including this parameter will restrict the balance query to a single category. POS or cart categories are allowed - as well as payment-type specific values that will vary depending on the payment type.",
+                        "required": false,
+                        "type": "string"
+                    },
+                    {
+                        "name": "turnOffPos",
+                        "in": "query",
+                        "description": "Including this parameter will remove the POS balances from the resulting json",
+                        "required": false,
+                        "type": "boolean"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "required": false,
+                        "schema": {
+                            "$ref": "#/definitions/BalanceRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "403": {
+                        "description": "You need admin access - and don't have it."
+                    },
+                    "400": {
+                        "description": "You are trying to get a balance you are not authorized to get."
+                    },
+                    "409": {
+                        "description": "There was an error with the request"
+                    },
+                    "200": {
+                        "description": "Balance inquiry successful. Return list of balances (category and amount)",
+                        "schema": {
+                            "$ref": "#/definitions/BalanceResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/test": {
+            "post": {
+                "tags": [
+                    "Summary"
+                ],
+                "summary": "Run an end-to-end test with a 3rd party auth api and retrieve the results",
+                "description": "",
+                "operationId": "testConnection_1",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "in": "body",
+                        "name": "body",
+                        "required": false,
+                        "schema": {
+                            "$ref": "#/definitions/TestRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "403": {
+                        "description": "You need admin access - and don't have it."
+                    },
+                    "400": {
+                        "description": "You are trying to run a test you are not authorized to run."
+                    },
+                    "409": {
+                        "description": "There was an error with the request"
+                    },
+                    "200": {
+                        "description": "Test call successful. Return the test object",
+                        "schema": {
+                            "$ref": "#/definitions/TestResult"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/auth/finalize_transaction_id": {
+            "put": {
+                "tags": [
+                    "Summary"
+                ],
+                "summary": "Changes the transactionId on the invoice.",
+                "description": "This call exists to support systems that don't have a final transactionId until after payments are captured. This method can only be called once per Invoice.",
+                "operationId": "updateTransId_1",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "application/json",
+                    "application/xml",
+                    "text/plain"
+                ],
+                "parameters": [
+                    {
+                        "name": "authorization",
+                        "in": "header",
+                        "description": "Token from {apikey}/token call",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "api-key",
+                        "in": "header",
+                        "description": "api-key",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "original",
+                        "in": "query",
+                        "description": "Original transactionId captured in finalize_payments.",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "final",
+                        "in": "query",
+                        "description": "Final transactionId to update invoice with.",
+                        "required": true,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "409": {
+                        "description": "The Invoice has already been updated."
+                    },
+                    "200": {
+                        "description": "Invoice updated successful."
+                    }
+                }
+            }
+        },
+        "/v1/auth/{apiKey}/token": {
+            "get": {
+                "tags": [
+                    "Summary"
+                ],
+                "summary": "Retrieve an auth token for an apikey and an api secret.",
+                "description": "The retrieved token will only be usable for an undefined limited time. If you later get a 401 when using the token, then use this endpoint again to retrieve another token",
+                "operationId": "getToken_1",
+                "consumes": [
+                    "application/json",
+                    "application/xml"
+                ],
+                "produces": [
+                    "text/plain",
+                    "application/json",
+                    "application/xml"
+                ],
+                "parameters": [
+                    {
+                        "name": "apiKey",
+                        "in": "path",
+                        "required": true,
+                        "type": "string"
+                    },
+                    {
+                        "name": "secret",
+                        "in": "query",
+                        "description": "Api key secret your were given when the key was generated.",
+                        "required": false,
+                        "type": "string"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Token generated successfully",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "No secret supplied."
+                    },
+                    "403": {
+                        "description": "Invalid key, secret supplied."
+                    },
+                    "409": {
+                        "description": "Key Disabled - see message - generate a new ApiKey or contact support."
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "Adjustment": {
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "BOGO",
+                    "description": "A promotion or other adjustment code."
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Buy One Get One Free",
+                    "description": "A description of the adjustment."
+                },
+                "managerApproved": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "True if this adjustment was approved by a manager, false if not. Defaults to false."
+                },
+                "error": {
+                    "type": "string",
+                    "example": "RequiresManagerApproval",
+                    "description": "Any error from running the Promotion.",
+                    "readOnly": true,
+                    "enum": [
+                        "Unknown",
+                        "Expired",
+                        "WrongType",
+                        "DoesNotApply",
+                        "UsedElsewhere",
+                        "RequiresManagerApproval"
+                    ]
+                },
+                "amount": {
+                    "type": "number",
+                    "example": -1.23,
+                    "description": "The amount that this adjustment modifies the before-tax amount. Will be generated by prepare_transaction. Could be positive or negative, where negative means discount."
+                },
+                "taxAmount": {
+                    "type": "number",
+                    "example": -0.23,
+                    "description": "The amount that this adjustment modifies the tax amount. Will be generated by prepare_transaction. Could be positive or negative, where negative means discount."
+                },
+                "preTax": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "This adjustment is applied before tax is calculated"
+                },
+                "approvalId": {
+                    "type": "string",
+                    "example": "12345DEADBEEF54321",
+                    "description": "A signature for this adjustment that should not be modified. Will be generated by prepare_transaction.",
+                    "readOnly": true
+                },
+                "auto": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "True if this adjustment was automatically created by the system, false otherwise.",
+                    "readOnly": true
+                },
+                "postTax": {
+                    "type": "boolean",
+                    "example": false,
+                    "description": "This adjustment is applied after tax is calculated",
+                    "readOnly": true
+                }
+            }
+        },
+        "AuthorizedCharge": {
+            "type": "object",
+            "properties": {
+                "uid": {
+                    "type": "string",
+                    "example": "993d892b-fdc2-45fb-a55e-f50a6b194850",
+                    "description": "An identifier for a specific charge line. May be set by the POS or will be generated by prepare_transaction."
+                },
+                "ruleData": {
+                    "type": "string",
+                    "example": "{\"TEST\":true}",
+                    "description": "The ruleData that applies to this charge. Optional. JSON format."
+                },
+                "posItem": {
+                    "type": "string",
+                    "example": "abc123",
+                    "description": "A POS identifier for the charge. Optional. For auditing and reporting."
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Blue Baseball Cap, Small",
+                    "description": "The description of the item on this line."
+                },
+                "previouslyCoveredSubtotal": {
+                    "type": "number",
+                    "description": "The subtotal amount that was covered by a previous payment.",
+                    "readOnly": true
+                },
+                "previouslyCoveredTax": {
+                    "type": "number",
+                    "description": "The tax amount that was covered by a previous payment.",
+                    "readOnly": true
+                },
+                "previouslyExemptedTax": {
+                    "type": "number",
+                    "description": "The exempted tax amount that was exempted by a previous payment.",
+                    "readOnly": true
+                },
+                "saleCategory": {
+                    "type": "string",
+                    "example": "99-99-9999",
+                    "description": "The category designator from the POS or other cart provider. Format is arbitrary.  Defaults to no category code. May be a GL code, Financial Reporting Code, AR code, etc. Only required if required by a payment type that will be used to pay for this line. For example, a scholarship payor in higher education may require this to authorize books and disallow clothing purchases, or a hospitality payor may authorize different categories of purchases for a VIP Suite vs a standard room. Please note that whatever format is used here should be the same format as the WPS category map for the payment type is one is in use.<br/> <b>Please note:</b> The PoS or other transaction source should send in whatever their customer is used to seeing in their system for a category. This might be a financial reporting code, DCC, or some other product category designation. Please do not map this to a set of categories specifically for WPS. WPS has that capability, internally, and customers rely on the ability to make changes to that mapping for tax modifications and other rules."
+                },
+                "quantity": {
+                    "type": "integer",
+                    "example": 3,
+                    "description": "The quantity for this line. Defaults to 1."
+                },
+                "unitPrice": {
+                    "type": "number",
+                    "example": 1.23,
+                    "description": "The unit price for this line without tax."
+                },
+                "itemCost": {
+                    "type": "number",
+                    "example": 1.23,
+                    "description": "Item cost charge. Optional. For auditing and reporting."
+                },
+                "scancode": {
+                    "type": "string",
+                    "example": "9788420532318",
+                    "description": "The EAN, SKU, or other scannable for this line."
+                },
+                "userData": {
+                    "type": "string",
+                    "example": "{ \"my_key\": \"a data value that I will want to use later\" }",
+                    "description": "Line-level data to be secured and stored with the transaction - json format suggested"
+                },
+                "taxExempt": {
+                    "type": "boolean",
+                    "example": false,
+                    "description": "True if this item is tax exempt. False otherwise. Default of false. This field is the tax exempt status as understood and set by the POS or other cart provider. Note: This will not change if the tax rate or tax code are changed by a tax-exempt payment type. It may cause the tax code to change if set by the POS or other cart provider."
+                },
+                "taxCode": {
+                    "type": "string",
+                    "example": "10040",
+                    "description": "The tax code for this item. Valid values can be retrieved from the taxcodes endpoint of the tax service. Default is no tax code - which will use the default (highest) tax for the location."
+                },
+                "taxRate": {
+                    "type": "number",
+                    "example": 0.0635,
+                    "description": "The tax rate for this item. Will be generated by prepare_transaction if overrideTax is not set to true."
+                },
+                "overrideTax": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "If true, the tax rate passed in is the one to use instead of generating it."
+                },
+                "shipping": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "If true this charge represents the shipping cost for a shipped order. Do not include for pickup or other non-shipped orders. Only one charge may be marked as shipping."
+                },
+                "signature": {
+                    "type": "string",
+                    "example": "12345DEADBEEF54321",
+                    "description": "A signature for this line that should not be modified. Will be generated by prepare_transaction.",
+                    "readOnly": true
+                },
+                "program": {
+                    "type": "string",
+                    "example": "Student",
+                    "description": "The program for the charge"
+                },
+                "term": {
+                    "type": "string",
+                    "example": "Fall 2020",
+                    "description": "The term for the charge"
+                },
+                "department": {
+                    "type": "string",
+                    "example": "Math",
+                    "description": "The department for the charge"
+                },
+                "course": {
+                    "type": "string",
+                    "example": "1000",
+                    "description": "The course for the charge"
+                },
+                "section": {
+                    "type": "string",
+                    "example": "01",
+                    "description": "The section for the charge"
+                },
+                "payorExemptTax": {
+                    "type": "number",
+                    "example": 12.34,
+                    "description": "The amount of the tax of this charge that was payor exempted by this authorized payment. Generated by prepare_payments.",
+                    "readOnly": true
+                },
+                "result": {
+                    "type": "string",
+                    "example": "PARTIALLY_COVERED_DUE_TO_CATEGORY",
+                    "description": "A code showing the result of paying for the transaction line item (charge) with the payment enclosing this authorized charge. Generated by prepare_payments.",
+                    "readOnly": true,
+                    "enum": [
+                        "COMPLETELY_COVERED",
+                        "PARTIALLY_COVERED",
+                        "NOT_COVERED",
+                        "PARTIALLY_COVERED_DUE_TO_CATEGORY",
+                        "NOT_COVERED_DUE_TO_CATEGORY",
+                        "PARTIALLY_COVERED_DUE_TO_REQUIRED_DOWN_PAYMENT",
+                        "NOT_COVERED_DUE_TO_REQUIRED_DOWN_PAYMENT"
+                    ]
+                },
+                "taxResult": {
+                    "type": "string",
+                    "example": "TAX_EXEMPTED_BY_PAYOR",
+                    "description": "A code showing the result of paying the tax for the transaction line item (charge) with the payment enclosing this authorized charge. Generated by prepare_payments. Note that if the payor exempts this charge, there will be an adjustment item added to the transaction to balance the transaction.",
+                    "readOnly": true,
+                    "enum": [
+                        "COMPLETELY_COVERED",
+                        "PARTIALLY_COVERED",
+                        "NOT_COVERED",
+                        "PARTIALLY_COVERED_DUE_TO_CATEGORY",
+                        "NOT_COVERED_DUE_TO_CATEGORY",
+                        "TAX_EXEMPTED_BY_PAYOR"
+                    ]
+                },
+                "serialNumber": {
+                    "type": "string",
+                    "example": "1234567890",
+                    "description": "Serial Number of serializable item (charge)."
+                },
+                "humanReadableMessage": {
+                    "type": "string",
+                    "example": "The payment refused this charge due to restrictions on the type of the item",
+                    "description": "A description (suitable for tooltip or information dialog) of the outcome of attempting to pay this charge with this payment. This is important information when, for example, the payment would have approved the amount of the charge but doesn't approve it due to category or other rule restrictions.  Generated by prepare_payments.",
+                    "readOnly": true
+                },
+                "coveredAmount": {
+                    "type": "number",
+                    "example": 123.45,
+                    "description": "The amount of this charge (without tax) that was covered by this authorized payment. Generated by prepare_payments.",
+                    "readOnly": true
+                },
+                "coveredTaxAmount": {
+                    "type": "number",
+                    "example": 12.34,
+                    "description": "The amount of the tax of this charge that was covered by this authorized payment. Generated by prepare_payments.",
+                    "readOnly": true
+                },
+                "exemptedTaxAmount": {
+                    "type": "number",
+                    "example": 12.34,
+                    "description": "The amount of the tax of this charge that was payor exempted by this authorized payment. Generated by prepare_payments.",
+                    "readOnly": true
+                },
+                "payorTaxExempt": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "True if the payor for this item is tax exempt Generated by prepare_payments.",
+                    "readOnly": true
+                },
+                "authorizedForTerm": {
+                    "type": "string",
+                    "example": "TEST1234",
+                    "description": "Says what term the charge was authorized for.",
+                    "readOnly": true
+                },
+                "requiredDownPayment": {
+                    "type": "number",
+                    "example": 1.0,
+                    "description": "The amount of a required down payment, if applicable.",
+                    "readOnly": true
+                },
+                "subTotalAmount": {
+                    "type": "number",
+                    "example": 123.45,
+                    "description": "The total amount of this line without tax. Will be generated by prepare_transaction.",
+                    "readOnly": true
+                },
+                "taxAmount": {
+                    "type": "number",
+                    "example": 12.34,
+                    "description": "The total amount of tax for this line. Will be generated by prepare_transaction."
+                },
+                "adjustments": {
+                    "type": "array",
+                    "xml": {
+                        "name": "adjustment"
+                    },
+                    "description": "A list of promos, coupons, or other adjustments for this line.",
+                    "items": {
+                        "xml": {
+                            "name": "adjustment"
+                        },
+                        "$ref": "#/definitions/Adjustment"
+                    }
+                }
+            }
+        },
+        "Charge": {
+            "type": "object",
+            "properties": {
+                "uid": {
+                    "type": "string",
+                    "example": "993d892b-fdc2-45fb-a55e-f50a6b194850",
+                    "description": "An identifier for a specific charge line. May be set by the POS or will be generated by prepare_transaction."
+                },
+                "ruleData": {
+                    "type": "string",
+                    "example": "{\"TEST\":true}",
+                    "description": "The ruleData that applies to this charge. Optional. JSON format."
+                },
+                "posItem": {
+                    "type": "string",
+                    "example": "abc123",
+                    "description": "A POS identifier for the charge. Optional. For auditing and reporting."
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Blue Baseball Cap, Small",
+                    "description": "The description of the item on this line."
+                },
+                "previouslyCoveredSubtotal": {
+                    "type": "number",
+                    "description": "The subtotal amount that was covered by a previous payment.",
+                    "readOnly": true
+                },
+                "previouslyCoveredTax": {
+                    "type": "number",
+                    "description": "The tax amount that was covered by a previous payment.",
+                    "readOnly": true
+                },
+                "previouslyExemptedTax": {
+                    "type": "number",
+                    "description": "The exempted tax amount that was exempted by a previous payment.",
+                    "readOnly": true
+                },
+                "saleCategory": {
+                    "type": "string",
+                    "example": "99-99-9999",
+                    "description": "The category designator from the POS or other cart provider. Format is arbitrary.  Defaults to no category code. May be a GL code, Financial Reporting Code, AR code, etc. Only required if required by a payment type that will be used to pay for this line. For example, a scholarship payor in higher education may require this to authorize books and disallow clothing purchases, or a hospitality payor may authorize different categories of purchases for a VIP Suite vs a standard room. Please note that whatever format is used here should be the same format as the WPS category map for the payment type is one is in use.<br/> <b>Please note:</b> The PoS or other transaction source should send in whatever their customer is used to seeing in their system for a category. This might be a financial reporting code, DCC, or some other product category designation. Please do not map this to a set of categories specifically for WPS. WPS has that capability, internally, and customers rely on the ability to make changes to that mapping for tax modifications and other rules."
+                },
+                "quantity": {
+                    "type": "integer",
+                    "example": 3,
+                    "description": "The quantity for this line. Defaults to 1."
+                },
+                "unitPrice": {
+                    "type": "number",
+                    "example": 1.23,
+                    "description": "The unit price for this line without tax."
+                },
+                "itemCost": {
+                    "type": "number",
+                    "example": 1.23,
+                    "description": "Item cost charge. Optional. For auditing and reporting."
+                },
+                "scancode": {
+                    "type": "string",
+                    "example": "9788420532318",
+                    "description": "The EAN, SKU, or other scannable for this line."
+                },
+                "userData": {
+                    "type": "string",
+                    "example": "{ \"my_key\": \"a data value that I will want to use later\" }",
+                    "description": "Line-level data to be secured and stored with the transaction - json format suggested"
+                },
+                "taxExempt": {
+                    "type": "boolean",
+                    "example": false,
+                    "description": "True if this item is tax exempt. False otherwise. Default of false. This field is the tax exempt status as understood and set by the POS or other cart provider. Note: This will not change if the tax rate or tax code are changed by a tax-exempt payment type. It may cause the tax code to change if set by the POS or other cart provider."
+                },
+                "taxCode": {
+                    "type": "string",
+                    "example": "10040",
+                    "description": "The tax code for this item. Valid values can be retrieved from the taxcodes endpoint of the tax service. Default is no tax code - which will use the default (highest) tax for the location."
+                },
+                "taxRate": {
+                    "type": "number",
+                    "example": 0.0635,
+                    "description": "The tax rate for this item. Will be generated by prepare_transaction if overrideTax is not set to true."
+                },
+                "overrideTax": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "If true, the tax rate passed in is the one to use instead of generating it."
+                },
+                "shipping": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "If true this charge represents the shipping cost for a shipped order. Do not include for pickup or other non-shipped orders. Only one charge may be marked as shipping."
+                },
+                "signature": {
+                    "type": "string",
+                    "example": "12345DEADBEEF54321",
+                    "description": "A signature for this line that should not be modified. Will be generated by prepare_transaction.",
+                    "readOnly": true
+                },
+                "program": {
+                    "type": "string",
+                    "example": "Student",
+                    "description": "The program for the charge"
+                },
+                "term": {
+                    "type": "string",
+                    "example": "Fall 2020",
+                    "description": "The term for the charge"
+                },
+                "department": {
+                    "type": "string",
+                    "example": "Math",
+                    "description": "The department for the charge"
+                },
+                "course": {
+                    "type": "string",
+                    "example": "1000",
+                    "description": "The course for the charge"
+                },
+                "section": {
+                    "type": "string",
+                    "example": "01",
+                    "description": "The section for the charge"
+                },
+                "payorExemptTax": {
+                    "type": "number",
+                    "description": "Tax exempted by payor. This field is used to acknowledge the tax amount that has been exempted by payments."
+                },
+                "result": {
+                    "type": "string",
+                    "example": "PARTIALLY_COVERED_DUE_TO_CATEGORY",
+                    "description": "A code showing the result of paying for the transaction line item (charge) with the payment enclosing this authorized charge. Generated by prepare_payments.",
+                    "readOnly": true,
+                    "enum": [
+                        "COMPLETELY_COVERED",
+                        "PARTIALLY_COVERED",
+                        "NOT_COVERED",
+                        "PARTIALLY_COVERED_DUE_TO_CATEGORY",
+                        "NOT_COVERED_DUE_TO_CATEGORY",
+                        "PARTIALLY_COVERED_DUE_TO_REQUIRED_DOWN_PAYMENT",
+                        "NOT_COVERED_DUE_TO_REQUIRED_DOWN_PAYMENT"
+                    ]
+                },
+                "taxResult": {
+                    "type": "string",
+                    "example": "TAX_EXEMPTED_BY_PAYOR",
+                    "description": "A code showing the result of paying the tax for the transaction line item (charge) with the payment enclosing this authorized charge. Generated by prepare_payments. Note that if the payor exempts this charge, there will be an adjustment item added to the transaction to balance the transaction.",
+                    "readOnly": true,
+                    "enum": [
+                        "COMPLETELY_COVERED",
+                        "PARTIALLY_COVERED",
+                        "NOT_COVERED",
+                        "PARTIALLY_COVERED_DUE_TO_CATEGORY",
+                        "NOT_COVERED_DUE_TO_CATEGORY",
+                        "TAX_EXEMPTED_BY_PAYOR"
+                    ]
+                },
+                "serialNumber": {
+                    "type": "string",
+                    "example": "1234567890",
+                    "description": "Serial Number of serializable item (charge)."
+                },
+                "subTotalAmount": {
+                    "type": "number",
+                    "example": 123.45,
+                    "description": "The total amount of this line without tax. Will be generated by prepare_transaction.",
+                    "readOnly": true
+                },
+                "taxAmount": {
+                    "type": "number",
+                    "example": 12.34,
+                    "description": "The total amount of tax for this line. Will be generated by prepare_transaction."
+                },
+                "adjustments": {
+                    "type": "array",
+                    "xml": {
+                        "name": "adjustment"
+                    },
+                    "description": "A list of promos, coupons, or other adjustments for this line.",
+                    "items": {
+                        "xml": {
+                            "name": "adjustment"
+                        },
+                        "$ref": "#/definitions/Adjustment"
+                    }
+                }
+            }
+        },
+        "ChargeError": {
+            "type": "object",
+            "properties": {
+                "uid": {
+                    "type": "string",
+                    "example": "993d892b-fdc2-45fb-a55e-f50a6b194850",
+                    "description": "An identifier for a specific charge line. May be set by the POS or will be generated by prepare_transaction.",
+                    "readOnly": true
+                },
+                "message": {
+                    "type": "string",
+                    "example": "The payment refused this charge due to restrictions on the type of the item",
+                    "description": "A description (suitable for tooltip or information dialog) of the outcome of attempting to pay this charge with this payment. This is important information when, for example, the payment would have approved the amount of the charge but doesn't approve it due to category or other rule restrictions.  Generated by prepare_payments.",
+                    "readOnly": true
+                }
+            }
+        },
+        "Customer": {
+            "type": "object",
+            "required": [
+                "lastName"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string",
+                    "example": "123 3rd Street W",
+                    "description": "First line of the address"
+                },
+                "city": {
+                    "type": "string",
+                    "example": "Chicago",
+                    "description": "City name for this customer"
+                },
+                "state": {
+                    "type": "string",
+                    "example": "IL",
+                    "description": "State or province abbreviation for this customer"
+                },
+                "country": {
+                    "type": "string",
+                    "example": "US",
+                    "description": "Two character ISO country code for this customer. Defaults to US."
+                },
+                "postal": {
+                    "type": "string",
+                    "example": "84000",
+                    "description": "Postal or ZIP code for this customer."
+                },
+                "phone": {
+                    "type": "string",
+                    "example": "4355551212",
+                    "description": "Phone number for this customer. For best results in reporting, please use US format or international with all punctuation and spaces removed. (Digits only.)"
+                },
+                "email": {
+                    "type": "string",
+                    "example": "nobody@nowhere.com",
+                    "description": "Email address for this customer."
+                },
+                "firstName": {
+                    "type": "string",
+                    "example": "John",
+                    "description": "The first name or names of the customer"
+                },
+                "lastName": {
+                    "type": "string",
+                    "example": "Doe",
+                    "description": "The last name (usually surname) of the customer"
+                },
+                "address2": {
+                    "type": "string",
+                    "example": "Apt. 221B",
+                    "description": "Second line of the address, if any"
+                },
+                "id": {
+                    "type": "string",
+                    "example": "abc1234",
+                    "description": "POS or cart provider identifier for this customer - for auditing and reporting."
+                },
+                "posId": {
+                    "type": "string",
+                    "example": "abc1234",
+                    "description": "POS or cart provider identifier for this customer - for auditing and reporting."
+                }
+            }
+        },
+        "InvoiceResult": {
+            "type": "object",
+            "properties": {
+                "uid": {
+                    "type": "string",
+                    "example": "993d892b-fdc2-45fb-a55e-f50a6b194850",
+                    "description": "An identifier for a specific charge line. May be set by the POS or will be generated by prepare_transaction."
+                },
+                "ruleData": {
+                    "type": "string",
+                    "example": "{\"TEST\":true}",
+                    "description": "The ruleData that applies to this charge. Optional. JSON format."
+                },
+                "posItem": {
+                    "type": "string",
+                    "example": "abc123",
+                    "description": "A POS identifier for the charge. Optional. For auditing and reporting."
+                },
+                "description": {
+                    "type": "string",
+                    "example": "Blue Baseball Cap, Small",
+                    "description": "The description of the item on this line."
+                },
+                "previouslyCoveredSubtotal": {
+                    "type": "number",
+                    "description": "The subtotal amount that was covered by a previous payment.",
+                    "readOnly": true
+                },
+                "previouslyCoveredTax": {
+                    "type": "number",
+                    "description": "The tax amount that was covered by a previous payment.",
+                    "readOnly": true
+                },
+                "previouslyExemptedTax": {
+                    "type": "number",
+                    "description": "The exempted tax amount that was exempted by a previous payment.",
+                    "readOnly": true
+                },
+                "saleCategory": {
+                    "type": "string",
+                    "example": "99-99-9999",
+                    "description": "The category designator from the POS or other cart provider. Format is arbitrary.  Defaults to no category code. May be a GL code, Financial Reporting Code, AR code, etc. Only required if required by a payment type that will be used to pay for this line. For example, a scholarship payor in higher education may require this to authorize books and disallow clothing purchases, or a hospitality payor may authorize different categories of purchases for a VIP Suite vs a standard room. Please note that whatever format is used here should be the same format as the WPS category map for the payment type is one is in use.<br/> <b>Please note:</b> The PoS or other transaction source should send in whatever their customer is used to seeing in their system for a category. This might be a financial reporting code, DCC, or some other product category designation. Please do not map this to a set of categories specifically for WPS. WPS has that capability, internally, and customers rely on the ability to make changes to that mapping for tax modifications and other rules."
+                },
+                "quantity": {
+                    "type": "integer",
+                    "example": 3,
+                    "description": "The quantity for this line. Defaults to 1."
+                },
+                "unitPrice": {
+                    "type": "number",
+                    "example": 1.23,
+                    "description": "The unit price for this line without tax."
+                },
+                "itemCost": {
+                    "type": "number",
+                    "example": 1.23,
+                    "description": "Item cost charge. Optional. For auditing and reporting."
+                },
+                "scancode": {
+                    "type": "string",
+                    "example": "9788420532318",
+                    "description": "The EAN, SKU, or other scannable for this line."
+                },
+                "userData": {
+                    "type": "string",
+                    "example": "{ \"my_key\": \"a data value that I will want to use later\" }",
+                    "description": "Line-level data to be secured and stored with the transaction - json format suggested"
+                },
+                "taxExempt": {
+                    "type": "boolean",
+                    "example": false,
+                    "description": "True if this item is tax exempt. False otherwise. Default of false. This field is the tax exempt status as understood and set by the POS or other cart provider. Note: This will not change if the tax rate or tax code are changed by a tax-exempt payment type. It may cause the tax code to change if set by the POS or other cart provider."
+                },
+                "taxCode": {
+                    "type": "string",
+                    "example": "10040",
+                    "description": "The tax code for this item. Valid values can be retrieved from the taxcodes endpoint of the tax service. Default is no tax code - which will use the default (highest) tax for the location."
+                },
+                "taxRate": {
+                    "type": "number",
+                    "example": 0.0635,
+                    "description": "The tax rate for this item. Will be generated by prepare_transaction if overrideTax is not set to true."
+                },
+                "overrideTax": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "If true, the tax rate passed in is the one to use instead of generating it."
+                },
+                "shipping": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "If true this charge represents the shipping cost for a shipped order. Do not include for pickup or other non-shipped orders. Only one charge may be marked as shipping."
+                },
+                "signature": {
+                    "type": "string",
+                    "example": "12345DEADBEEF54321",
+                    "description": "A signature for this line that should not be modified. Will be generated by prepare_transaction.",
+                    "readOnly": true
+                },
+                "program": {
+                    "type": "string",
+                    "example": "Student",
+                    "description": "The program for the charge"
+                },
+                "term": {
+                    "type": "string",
+                    "example": "Fall 2020",
+                    "description": "The term for the charge"
+                },
+                "department": {
+                    "type": "string",
+                    "example": "Math",
+                    "description": "The department for the charge"
+                },
+                "course": {
+                    "type": "string",
+                    "example": "1000",
+                    "description": "The course for the charge"
+                },
+                "section": {
+                    "type": "string",
+                    "example": "01",
+                    "description": "The section for the charge"
+                },
+                "payorExemptTax": {
+                    "type": "number",
+                    "example": 12.34,
+                    "description": "The amount of the tax of this charge that was payor exempted by this authorized payment. Generated by prepare_payments.",
+                    "readOnly": true
+                },
+                "result": {
+                    "type": "string",
+                    "example": "PARTIALLY_COVERED_DUE_TO_CATEGORY",
+                    "description": "A code showing the result of paying for the transaction line item (charge) with the payment enclosing this authorized charge. Generated by prepare_payments.",
+                    "readOnly": true,
+                    "enum": [
+                        "COMPLETELY_COVERED",
+                        "PARTIALLY_COVERED",
+                        "NOT_COVERED",
+                        "PARTIALLY_COVERED_DUE_TO_CATEGORY",
+                        "NOT_COVERED_DUE_TO_CATEGORY",
+                        "PARTIALLY_COVERED_DUE_TO_REQUIRED_DOWN_PAYMENT",
+                        "NOT_COVERED_DUE_TO_REQUIRED_DOWN_PAYMENT"
+                    ]
+                },
+                "taxResult": {
+                    "type": "string",
+                    "example": "TAX_EXEMPTED_BY_PAYOR",
+                    "description": "A code showing the result of paying the tax for the transaction line item (charge) with the payment enclosing this authorized charge. Generated by prepare_payments. Note that if the payor exempts this charge, there will be an adjustment item added to the transaction to balance the transaction.",
+                    "readOnly": true,
+                    "enum": [
+                        "COMPLETELY_COVERED",
+                        "PARTIALLY_COVERED",
+                        "NOT_COVERED",
+                        "PARTIALLY_COVERED_DUE_TO_CATEGORY",
+                        "NOT_COVERED_DUE_TO_CATEGORY",
+                        "TAX_EXEMPTED_BY_PAYOR"
+                    ]
+                },
+                "serialNumber": {
+                    "type": "string",
+                    "example": "1234567890",
+                    "description": "Serial Number of serializable item (charge)."
+                },
+                "humanReadableMessage": {
+                    "type": "string",
+                    "example": "The payment refused this charge due to restrictions on the type of the item",
+                    "description": "A description (suitable for tooltip or information dialog) of the outcome of attempting to pay this charge with this payment. This is important information when, for example, the payment would have approved the amount of the charge but doesn't approve it due to category or other rule restrictions.  Generated by prepare_payments.",
+                    "readOnly": true
+                },
+                "coveredAmount": {
+                    "type": "number",
+                    "example": 123.45,
+                    "description": "The amount of this charge (without tax) that was covered by this authorized payment. Generated by prepare_payments.",
+                    "readOnly": true
+                },
+                "coveredTaxAmount": {
+                    "type": "number",
+                    "example": 12.34,
+                    "description": "The amount of the tax of this charge that was covered by this authorized payment. Generated by prepare_payments.",
+                    "readOnly": true
+                },
+                "exemptedTaxAmount": {
+                    "type": "number",
+                    "example": 12.34,
+                    "description": "The amount of the tax of this charge that was payor exempted by this authorized payment. Generated by prepare_payments.",
+                    "readOnly": true
+                },
+                "payorTaxExempt": {
+                    "type": "boolean",
+                    "example": true,
+                    "description": "True if the payor for this item is tax exempt Generated by prepare_payments.",
+                    "readOnly": true
+                },
+                "authorizedForTerm": {
+                    "type": "string",
+                    "example": "TEST1234",
+                    "description": "Says what term the charge was authorized for.",
+                    "readOnly": true
+                },
+                "requiredDownPayment": {
+                    "type": "number",
+                    "example": 1.0,
+                    "description": "The amount of a required down payment, if applicable.",
+                    "readOnly": true
+                },
+                "capturedInvoiceNumber": {
+                    "type": "string",
+                    "example": "1234-bcde-deadbeef",
+                    "description": "The invoice number provided by the final processor of the payment. For informational purposes.",
+                    "readOnly": true
+                },
+                "forcedCapture": {
+                    "type": "boolean",
+                    "example": false,
+                    "description": "If true, the funds for this charge were captured even if authorization failed. See Payment for more details. Defaults to false.",
+                    "readOnly": true
+                },
+                "subPaymentBreakdown": {
+                    "description": "Line item sub-payment breakdown for sub-payment types on the payment. Generated by finalize_payments.",
+                    "readOnly": true,
+                    "$ref": "#/definitions/SubPaymentBreakdown"
+                },
+                "subTotalAmount": {
+                    "type": "number",
+                    "example": 123.45,
+                    "description": "The total amount of this line without tax. Will be generated by prepare_transaction.",
+                    "readOnly": true
+                },
+                "taxAmount": {
+                    "type": "number",
+                    "example": 12.34,
+                    "description": "The total amount of tax for this line. Will be generated by prepare_transaction."
+                },
+                "adjustments": {
+                    "type": "array",
+                    "xml": {
+                        "name": "adjustment"
+                    },
+                    "description": "A list of promos, coupons, or other adjustments for this line.",
+                    "items": {
+                        "xml": {
+                            "name": "adjustment"
+                        },
+                        "$ref": "#/definitions/Adjustment"
+                    }
+                }
+            }
+        },
+        "Payment": {
+            "type": "object",
+            "required": [
+                "apiKey"
+            ],
+            "properties": {
+                "apiKey": {
+                    "type": "string",
+                    "example": "2bfc3aea-cf37-4341-8139-c4db84be7e17",
+                    "description": "The api key provided by WPS for the specific payment method to use. This must be a key for a payment method authorized on the same account as the current logged-in user."
+                },
+                "account": {
+                    "type": "string",
+                    "example": "45678901",
+                    "description": "The account for the payment method to use. Varies depending on the payment method. For example, the HSN for swiped credit cards, the student id for bursar payments, the folio id for charge-to-room, the card number for gift cards, the account id for in-store credit or CBORD, etc. Either this or the prevAuthId is required."
+                },
+                "maskedAccount": {
+                    "type": "string",
+                    "example": "****8901",
+                    "description": "Masked version of account.",
+                    "readOnly": true
+                },
+                "secondaryId": {
+                    "type": "string",
+                    "example": "456",
+                    "description": "The second \"factor\" id. Varies depending on the payment method. For example, the CVV for tokenized ecomm card payments, or the last name for scholarship payments where it is required by law. Often not required. For example, it is not required for swiped credit cards via the Bolt system."
+                },
+                "periodDesignator": {
+                    "type": "string",
+                    "example": "10/2018 or FA18",
+                    "description": "The time period for this payment type. Varies depending on the payment method. For example, the expiration in MM/YYYY for tokenized ecomm card payments, or the (optional) term for bursar payments in higher education. Often not required. For example, it is not required for swiped credit cards via the Bolt system, and bursar payments will default to the current term. Acceptable formats for manual CardConnect payments:\n* MYY, M/YY\n* MMYY, MM/YY\n* MYYYY, M/YYYY\n* MMYYYY, MM/YYYY\n* YYYY-MM\n"
+                },
+                "authId": {
+                    "type": "string",
+                    "example": "12345DEADBEEF54321",
+                    "description": "The authorization id returned by WPS for the payment. Generated by prepare_payments. This should be stored by the POS or other cart provider if there will be a need to recharge this payment type in the future. Storage of this token creates no exposure to PCI (if credit card), FERPA (if US higher education), HIPAA (if US patient account), or GDPR (if EU customer privacy is at issue). Please note that this token can be long in certain circumstances - up to 1k or more - and must be stored unmodified."
+                },
+                "prevAuthId": {
+                    "type": "string",
+                    "example": "12345DEADBEEF54321",
+                    "description": "The authId from a previous, successful, authorization for use in recharging that same payment source. This required for a recharge, and disallowed in all other situations. Either this field or the account field is required."
+                },
+                "forcedCapture": {
+                    "type": "boolean",
+                    "example": false,
+                    "description": "If true, capture the funds for this payment even if authorization failed. This is only available for those payment types where both the payment provider allows it, and the POS or cart provider has a forced capture authorization waiver on file for this payment type. Basically, write the invoice as provided EVEN IF the authorization failed - used for forced collection of contracted goods and services - i.e. rental non-return fees, damage fees, etc. Defaults to false."
+                },
+                "voidPayment": {
+                    "type": "boolean",
+                    "example": false,
+                    "description": "If true, void/reverse and remove this authorization from the list of active payments for this transaction. This is used to change payment types on a transaction after that payment is already signed with an auth id. If a payment is removed from the transaction without setting this flag and resubmitting to prepare_payments, the POS or cart provider is responsible for voiding the previous authorization if required. Defaults to false."
+                },
+                "mustAllowRecharge": {
+                    "type": "boolean",
+                    "example": false,
+                    "description": "If true, deny NFC (contactless) charges or others that result in a one-time token that cannot be used later to re-charge the same account. Defaults to false."
+                },
+                "storableRechargeToken": {
+                    "type": "string",
+                    "example": "12345DEADBEEF54321",
+                    "description": "A short (64 characters or fewer) token that can be stored instead of the auth id in the case that the POS or cart provider's database won't allow the auth id to be stored due to the potential size of that token. Store the auth id instead if at all possible. Like auth id, this token can be passed in as the prevAuthId but may be time limited, amount limited, restricted to the exact same category accounts (in the case of category restricted payment types), or have other rule-based restrictions that an auth id may not have. Generated by prepare_payments.",
+                    "readOnly": true
+                },
+                "totalRequestedAmount": {
+                    "type": "number",
+                    "example": 123.45,
+                    "description": "The total amount to charge to this payment type. Defaults to the total of all uncovered items in the transaction, values larger than that will be ignored."
+                },
+                "totalAuthorizedAmount": {
+                    "type": "number",
+                    "example": 123.45,
+                    "description": "The amount authorized by this payment. Generated by prepare_payments.",
+                    "readOnly": true
+                },
+                "totalExemptedTaxAmount": {
+                    "type": "number",
+                    "example": 123.45,
+                    "description": "The amount of tax that was exempted by this payment. Generated by prepare_payments.",
+                    "readOnly": true
+                },
+                "totalCapturedAmount": {
+                    "type": "number",
+                    "example": 123.45,
+                    "description": "The amount captured for this payment. Generated by finalize_payments.",
+                    "readOnly": true
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Success",
+                    "description": "Human readable message describing that state of the payment. Generated by prepare_payments.",
+                    "readOnly": true
+                },
+                "result": {
+                    "type": "string",
+                    "example": "SUCCESS",
+                    "description": "Result of the authorization.",
+                    "readOnly": true,
+                    "enum": [
+                        "SUCCESS",
+                        "ERROR",
+                        "INSUFFICIENT_FUNDS",
+                        "PARTIAL_APPROVAL"
+                    ]
+                },
+                "subPaymentBreakdown": {
+                    "description": "Line item sub-payment breakdown for sub-payment types on the payment. Generated by prepare_payments.",
+                    "readOnly": true,
+                    "$ref": "#/definitions/SubPaymentBreakdown"
+                },
+                "sig": {
+                    "type": "string",
+                    "description": "Customer signature to store on the Invoice for this payment. Please send a BASE 64 (RFC 4648 Table 1, padding optional) encoded PNG image."
+                },
+                "selectedPaymentType": {
+                    "type": "string",
+                    "example": "BURSAR_BILLING",
+                    "description": "Machine readable payment type used for the payment.",
+                    "readOnly": true
+                },
+                "cardType": {
+                    "type": "string",
+                    "example": "OTHER",
+                    "description": "Type of card used for the payment. Only visible if the client is configured with the correct data entitlements.",
+                    "readOnly": true
+                },
+                "payableOverage": {
+                    "type": "number",
+                    "example": 0.45,
+                    "description": "The amount from this payment that can be handed back in 'change'. May be disallowed by the payment. If so, the payment must be reduced as necessary to avoid overage. Generated by prepare_payments.",
+                    "readOnly": true
+                },
+                "paymentCountNumber": {
+                    "type": "integer",
+                    "format": "int32",
+                    "description": "The payment number. Used for multiple payments.",
+                    "readOnly": true
+                },
+                "poRequired": {
+                    "type": "boolean",
+                    "example": false,
+                    "description": "If true, a PO number will be required to authorize any payments that require a PO."
+                },
+                "poNumber": {
+                    "type": "string",
+                    "example": "TEST12345",
+                    "description": "The PO number to set."
+                },
+                "alternativeMappingId": {
+                    "type": "string",
+                    "example": "TEST12345",
+                    "description": "When set, this will be used to determine the correct SIS to use for the payment."
+                },
+                "loanPayment": {
+                    "type": "boolean",
+                    "example": false,
+                    "description": "If true, the payment will be marked as a loan payment."
+                },
+                "totalCoveredAmount": {
+                    "type": "number",
+                    "example": 123.45,
+                    "description": "The total amount covered by this payment. Generated by prepare_payments.",
+                    "readOnly": true
+                },
+                "humanReadableError": {
+                    "description": "The charge error summary. Only present if there are charge errors (not all charges are completely covered).",
+                    "readOnly": true,
+                    "$ref": "#/definitions/PaymentError"
+                },
+                "authorizedCharges": {
+                    "type": "array",
+                    "xml": {
+                        "name": "authorizedCharge"
+                    },
+                    "description": "Line items or partial line items covered by this payment. Generated by prepare_payments.",
+                    "readOnly": true,
+                    "items": {
+                        "xml": {
+                            "name": "authorizedCharge"
+                        },
+                        "$ref": "#/definitions/AuthorizedCharge"
+                    }
+                },
+                "capturedCharges": {
+                    "type": "array",
+                    "xml": {
+                        "name": "capturedCharge"
+                    },
+                    "description": "Line items or partial line items captured by this payment. Generated by finalize_transaction.",
+                    "readOnly": true,
+                    "items": {
+                        "xml": {
+                            "name": "capturedCharge"
+                        },
+                        "$ref": "#/definitions/InvoiceResult"
+                    }
+                },
+                "balances": {
+                    "type": "array",
+                    "xml": {
+                        "name": "balance"
+                    },
+                    "description": "Balance information.",
+                    "readOnly": true,
+                    "items": {
+                        "xml": {
+                            "name": "balance"
+                        },
+                        "$ref": "#/definitions/PaymentBalance"
+                    }
+                }
+            }
+        },
+        "PaymentBalance": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Name of balance.",
+                    "readOnly": true
+                },
+                "charge": {
+                    "type": "number",
+                    "description": "Charge towards balance.",
+                    "readOnly": true
+                },
+                "balanceRemaining": {
+                    "type": "number",
+                    "description": "Remaining balance. Only an estimate before cart is finalized.",
+                    "readOnly": true
+                }
+            }
+        },
+        "PaymentError": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "example": "The payment refused this charge due to restrictions on the type of the item",
+                    "description": "A description (suitable for tooltip or information dialog) of the outcome of attempting to process this payment.",
+                    "readOnly": true
+                },
+                "charges": {
+                    "type": "array",
+                    "description": "Charge information.",
+                    "readOnly": true,
+                    "items": {
+                        "$ref": "#/definitions/ChargeError"
+                    }
+                }
+            }
+        },
+        "PaymentPacket": {
+            "type": "object",
+            "required": [
+                "transaction"
+            ],
+            "properties": {
+                "operator": {
+                    "type": "string",
+                    "example": "John Doe or OP1234",
+                    "description": "The POS operator - for reporting and audit purposes. Suggested that this is always sent in, as it may be required for some payment types - like CBord for higher education use."
+                },
+                "sourceAddress": {
+                    "type": "string",
+                    "example": "10.42.0.41",
+                    "description": "IP address of transaction source for auditing/logging purposes"
+                },
+                "sourceId": {
+                    "type": "string",
+                    "example": "POS-1234",
+                    "description": "Text providing the source of this transaction - kiosk number, POS number, etc., for reporting/audit. Required for some auth types."
+                },
+                "timestamp": {
+                    "type": "integer",
+                    "format": "int64",
+                    "example": "2011-12-03T10:15:30Z",
+                    "description": "Date and time of sale in ISO-8601 format or 8601 with TZ offset (ISO_ZONED_DATE_TIME). Defaults to the current timestamp."
+                },
+                "transactionId": {
+                    "type": "string",
+                    "example": "TR12345678-ABCDE",
+                    "description": "POS transaction id or reference number for invoice. Reusing these will impact WPS-stored invoices. Required for some auth types."
+                },
+                "receiptNumber": {
+                    "type": "string",
+                    "example": "R123456",
+                    "description": "POS receipt number. Use only when not the same as transactionId."
+                },
+                "orderNumber": {
+                    "type": "string",
+                    "example": "2020-03-1234",
+                    "description": "Order number."
+                },
+                "userData": {
+                    "type": "string",
+                    "example": "{ \"my_key\": \"a data value that I will want to use later\" }",
+                    "description": "POS data to be secured and stored with the transaction - json format suggested"
+                },
+                "ruleData": {
+                    "type": "string",
+                    "example": "{ \"my_key\": \"rule data to be applied to rules engine\" }",
+                    "description": "JSON formatted rule dictionary with key/values."
+                },
+                "customer": {
+                    "description": "The customer details to report to the payments, and to record for reporting, auditing, and invoicing.",
+                    "$ref": "#/definitions/Customer"
+                },
+                "shipTo": {
+                    "description": "The details to use to calculate taxes for a shipped order and correctly record invoices for a shipped order. Do not include for pickup or other non-shipped orders.",
+                    "$ref": "#/definitions/Customer"
+                },
+                "wpsInvoiceNumber": {
+                    "type": "string",
+                    "description": "WPS generated numeric invoice number. Created on prepare payment.",
+                    "readOnly": true
+                },
+                "idempotencyKey": {
+                    "type": "string",
+                    "description": "If set, previous invoices will be checked for a match and the transaction rejected. This is checked on prepare_transaction and finalize_payments."
+                },
+                "transaction": {
+                    "description": "The transaction or cart details",
+                    "$ref": "#/definitions/Transaction"
+                },
+                "previouslySelectedChoice": {
+                    "type": "string",
+                    "description": "The selected Clover Choice from a previously attempted transaction. This is read only and cannot be changed.",
+                    "readOnly": true
+                },
+                "totalDownPaymentRequired": {
+                    "type": "number",
+                    "description": "The total deposit amount required by the payments.",
+                    "readOnly": true
+                },
+                "downPaymentOverrideAmount": {
+                    "type": "number",
+                    "description": "The down payment required amount. Will be used if > totalDownPaymentRequired. Will be set to the minimumDownPaymentAmount if < the minimumDownPaymentAmount."
+                },
+                "minimumDownPaymentAmount": {
+                    "type": "number",
+                    "description": "The down payment required amount. Will be used if > totalDownPaymentRequired"
+                },
+                "requestedDownPaymentOverrideAmount": {
+                    "type": "number",
+                    "description": "The requested down payment override amount. Will be filled out when the passed in downPaymentOverrideAmount is not allowed. This is to show that what was sent in was changed."
+                },
+                "signatureCapture": {
+                    "description": "This object is required if a signature may need to be captured.",
+                    "$ref": "#/definitions/SignatureCapture"
+                },
+                "totalCoveredAmount": {
+                    "type": "number",
+                    "example": 134.56,
+                    "description": "The total amount of the transaction (without tax) covered by authorized active payments. This will be set by prepare_payments.",
+                    "readOnly": true
+                },
+                "totalDownPaymentShortfall": {
+                    "type": "number",
+                    "example": 0.0,
+                    "description": "The total shortfall for the required down payment.",
+                    "readOnly": true
+                },
+                "totalCoveredTaxAmount": {
+                    "type": "number",
+                    "example": 13.45,
+                    "description": "The total amount of tax in the transaction covered by authorized active payments. This will be set by prepare_payments.",
+                    "readOnly": true
+                },
+                "totalShortFall": {
+                    "type": "number",
+                    "example": 100.0,
+                    "description": "The total amount of the transaction (without tax) NOT covered by authorized active.  This will be set by prepare_payments. payments, if any",
+                    "readOnly": true
+                },
+                "totalTaxShortFall": {
+                    "type": "number",
+                    "example": 10.0,
+                    "description": "The total amount of tax in the transaction NOT covered by authorized active payments, if any.  This will be set by prepare_payments.",
+                    "readOnly": true
+                },
+                "totalOverage": {
+                    "type": "number",
+                    "example": 0.0,
+                    "description": "The total amount of the authorized active payments that is not used in the transaction, if any. This will be set by prepare_payments.",
+                    "readOnly": true
+                },
+                "totalExemptedTax": {
+                    "type": "number",
+                    "example": 0.0,
+                    "description": "The total amount of tax for the authorized active payments that is tax exempt, if any. This will be set by prepare_payments.",
+                    "readOnly": true
+                },
+                "totalAttemptedAmount": {
+                    "type": "number",
+                    "example": 234.56,
+                    "description": "The total amount of attempted active payments without tax. This will be set by prepare_payments.",
+                    "readOnly": true
+                },
+                "payments": {
+                    "type": "array",
+                    "xml": {
+                        "name": "payment"
+                    },
+                    "description": "The requested, unremoved/voided, payments in this transaction. Required in prepare_payments and finalize_transaction. Optional in prepare_transaction.",
+                    "items": {
+                        "xml": {
+                            "name": "payment"
+                        },
+                        "$ref": "#/definitions/Payment"
+                    }
+                },
+                "voidedPayments": {
+                    "type": "array",
+                    "xml": {
+                        "name": "voidedPayment"
+                    },
+                    "description": "The requested, but then removed or voided, payments in this transaction.",
+                    "readOnly": true,
+                    "items": {
+                        "xml": {
+                            "name": "voidedPayment"
+                        },
+                        "$ref": "#/definitions/Payment"
+                    }
+                },
+                "uncoveredCharges": {
+                    "type": "array",
+                    "xml": {
+                        "name": "uncoveredCharge"
+                    },
+                    "description": "The charges or items in this transaction that are not (fully) covered",
+                    "readOnly": true,
+                    "items": {
+                        "xml": {
+                            "name": "uncoveredCharge"
+                        },
+                        "$ref": "#/definitions/Charge"
+                    }
+                }
+            }
+        },
+        "SignatureCapture": {
+            "type": "object",
+            "properties": {
+                "required": {
+                    "type": "boolean",
+                    "description": "True if a signature is required for this payment.",
+                    "readOnly": true
+                },
+                "signatureDeviceId": {
+                    "type": "string",
+                    "description": "The external device id to capture the signature on.",
+                    "readOnly": true
+                },
+                "signatureCaptureKey": {
+                    "type": "string",
+                    "description": "The payment key that has access to the signature device.",
+                    "readOnly": true
+                },
+                "result": {
+                    "type": "string",
+                    "description": "The signature result. Will be returned as a url to follow to retrieve the image.",
+                    "readOnly": true
+                }
+            }
+        },
+        "SubPayment": {
+            "type": "object",
+            "properties": {
+                "subPaymentName": {
+                    "type": "string"
+                },
+                "subPaymentType": {
+                    "type": "string"
+                },
+                "maxAllowed": {
+                    "type": "number"
+                },
+                "maskedAccount": {
+                    "type": "string"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "poRequired": {
+                    "type": "boolean"
+                },
+                "poNumber": {
+                    "type": "string"
+                },
+                "authorizedCharges": {
+                    "type": "array",
+                    "xml": {
+                        "name": "authorizedCharge"
+                    },
+                    "items": {
+                        "xml": {
+                            "name": "authorizedCharge"
+                        },
+                        "$ref": "#/definitions/AuthorizedCharge"
+                    }
+                },
+                "capturedCharges": {
+                    "type": "array",
+                    "xml": {
+                        "name": "capturedCharge"
+                    },
+                    "items": {
+                        "xml": {
+                            "name": "capturedCharge"
+                        },
+                        "$ref": "#/definitions/InvoiceResult"
+                    }
+                },
+                "balances": {
+                    "type": "array",
+                    "xml": {
+                        "name": "balance"
+                    },
+                    "items": {
+                        "xml": {
+                            "name": "balance"
+                        },
+                        "$ref": "#/definitions/PaymentBalance"
+                    }
+                }
+            }
+        },
+        "SubPaymentBreakdown": {
+            "type": "object",
+            "properties": {
+                "subPayments": {
+                    "type": "array",
+                    "xml": {
+                        "name": "subPayment"
+                    },
+                    "items": {
+                        "xml": {
+                            "name": "subPayment"
+                        },
+                        "$ref": "#/definitions/SubPayment"
+                    }
+                }
+            }
+        },
+        "Transaction": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "description": "The transaction type. The values here are Client-defined; some examples: \"retail, online, refund, buyback\". This field is recorded on the invoice and available for promotion and other rule matching (case sensitive)."
+                },
+                "taxPosted": {
+                    "type": "boolean",
+                    "description": "True if tax posted on finalize_payment, false otherwise. Won't be set until finalize_payment.",
+                    "readOnly": true
+                },
+                "charges": {
+                    "type": "array",
+                    "xml": {
+                        "name": "charge"
+                    },
+                    "items": {
+                        "xml": {
+                            "name": "charge"
+                        },
+                        "$ref": "#/definitions/Charge"
+                    }
+                },
+                "adjustments": {
+                    "type": "array",
+                    "xml": {
+                        "name": "adjustment"
+                    },
+                    "items": {
+                        "xml": {
+                            "name": "adjustment"
+                        },
+                        "$ref": "#/definitions/Adjustment"
+                    }
+                }
+            }
+        },
+        "Adoption": {
+            "type": "object",
+            "properties": {
+                "termCode": {
+                    "type": "string",
+                    "example": "Spr2019",
+                    "description": "The term code for the adoption."
+                },
+                "crn": {
+                    "type": "string",
+                    "example": "12345",
+                    "description": "The CRN code for the adoption."
+                },
+                "deptCode": {
+                    "type": "string",
+                    "example": "Math",
+                    "description": "The department code for the adoption. Required."
+                },
+                "courseCode": {
+                    "type": "string",
+                    "example": "3020",
+                    "description": "The course code for the adoption. Required."
+                },
+                "section": {
+                    "type": "string",
+                    "example": "1",
+                    "description": "The section for the adoption. Required"
+                },
+                "costToStore": {
+                    "type": "number",
+                    "description": "The cost of the item charged to the store."
+                },
+                "costToStudent": {
+                    "type": "number",
+                    "description": "The cost of the item charged to the student. Required."
+                },
+                "publisher": {
+                    "type": "string",
+                    "description": "The item publisher for the adoption."
+                },
+                "itemScanCode": {
+                    "type": "string",
+                    "example": "9781337694193",
+                    "description": "The item ISBN for the adoption. Required."
+                },
+                "itemName": {
+                    "type": "string",
+                    "example": "Discrete Mathematics with Applications",
+                    "description": "The item title for the adoption. Required."
+                },
+                "categories": {
+                    "type": "array",
+                    "xml": {
+                        "name": "category"
+                    },
+                    "description": "The Bursar category codes for the adoption.",
+                    "items": {
+                        "type": "string",
+                        "xml": {
+                            "name": "category"
+                        }
+                    }
+                }
+            },
+            "description": "Object for an adoption."
+        },
+        "AuthIdLookUpDto": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "clientUuid": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                },
+                "authId": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "createdBy": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "updatedBy": {
+                    "type": "string"
+                },
+                "expirationDate": {
+                    "type": "integer",
+                    "format": "int64"
+                },
+                "expirationDateBy": {
+                    "type": "string"
+                }
+            }
+        },
+        "OptInOptOutDTO": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "description": "The type of request. IA/EA/FA"
+                },
+                "termCode": {
+                    "type": "string",
+                    "description": "The term for the request"
+                },
+                "crn": {
+                    "type": "string",
+                    "description": "The crn for the request"
+                },
+                "departmentCode": {
+                    "type": "string",
+                    "description": "The department for the charges"
+                },
+                "courseCode": {
+                    "type": "string",
+                    "description": "The course code for the charges"
+                },
+                "sectionCode": {
+                    "type": "string",
+                    "description": "The sectionCode for the request"
+                },
+                "studentId": {
+                    "type": "string",
+                    "description": "The unique identifier for the student"
+                },
+                "firsName": {
+                    "type": "string",
+                    "description": "The first name for the student"
+                },
+                "lastName": {
+                    "type": "string",
+                    "description": "The last name for the student"
+                },
+                "email": {
+                    "type": "string",
+                    "description": "The email for the student"
+                },
+                "itemScanCode": {
+                    "type": "string",
+                    "description": "The itemScanCode for the item to be affected"
+                },
+                "title": {
+                    "type": "string",
+                    "description": "The title for the item to be affected"
+                },
+                "author": {
+                    "type": "string",
+                    "description": "The author of the item being affected"
+                },
+                "publisher": {
+                    "type": "string",
+                    "description": "The publisher for the item being affected"
+                },
+                "optOut": {
+                    "type": "boolean",
+                    "description": "Is this an opt out/opt in request. If true, then opt out."
+                },
+                "contentType": {
+                    "type": "string",
+                    "description": "The content type of the item. PHYSICAL or COURSEWARE or DIGITAL"
+                },
+                "processed": {
+                    "type": "boolean",
+                    "description": "True if the opt in/out was processed."
+                },
+                "failedToProcessReason": {
+                    "type": "string",
+                    "description": "If not null, the entry was not processed and this will have the reason why."
+                }
+            }
+        },
+        "Balance": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string",
+                    "example": "BOOKS",
+                    "description": "The code for the category.",
+                    "readOnly": true
+                },
+                "category": {
+                    "type": "string",
+                    "example": "BOOKS",
+                    "description": "The category the amount represents.",
+                    "readOnly": true
+                },
+                "amount": {
+                    "type": "number",
+                    "example": 123.45,
+                    "description": "The amount available for the given category (if present), or total if not. A null amount represents no limit.",
+                    "readOnly": true
+                },
+                "periodDesignator": {
+                    "type": "string",
+                    "example": "FA18",
+                    "description": "The time period the amount is good for.",
+                    "readOnly": true
+                }
+            }
+        },
+        "BalancePayment": {
+            "type": "object",
+            "required": [
+                "apiKey"
+            ],
+            "properties": {
+                "apiKey": {
+                    "type": "string",
+                    "example": "2bfc3aea-cf37-4341-8139-c4db84be7e17",
+                    "description": "The api key provided by WPS for the specific payment method to use. This must be a key for a payment method authorized on the same account as the current logged-in user."
+                },
+                "account": {
+                    "type": "string",
+                    "example": "45678901",
+                    "description": "The account for the payment method to use. Varies depending on the payment method. For example, the HSN for swiped credit cards, the student id for bursar payments, the folio id for charge-to-room, the card number for gift cards, the account id for in-store credit or CBORD, etc. Either this or the prevAuthId is required."
+                },
+                "maskedAccount": {
+                    "type": "string",
+                    "example": "****8901",
+                    "description": "Masked version of account.",
+                    "readOnly": true
+                },
+                "secondaryId": {
+                    "type": "string",
+                    "example": "456",
+                    "description": "The second \"factor\" id. Varies depending on the payment method. For example, the CVV for tokenized ecomm card payments, or the last name for scholarship payments where it is required by law. Often not required. For example, it is not required for swiped credit cards via the Bolt system."
+                },
+                "periodDesignator": {
+                    "type": "string",
+                    "example": "10/2018 or FA18",
+                    "description": "The time period for this payment type. Varies depending on the payment method. For example, the expiration in MM/YYYY for tokenized ecomm card payments, or the (optional) term for bursar payments in higher education. Often not required. For example, it is not required for swiped credit cards via the Bolt system, and bursar payments will default to the current term. Acceptable formats for manual CardConnect payments:\n* MYY, M/YY\n* MMYY, MM/YY\n* MYYYY, M/YYYY\n* MMYYYY, MM/YYYY\n* YYYY-MM\n"
+                },
+                "message": {
+                    "type": "string",
+                    "description": "Message from provider.",
+                    "readOnly": true
+                },
+                "funds": {
+                    "type": "array",
+                    "xml": {
+                        "name": "fund"
+                    },
+                    "items": {
+                        "xml": {
+                            "name": "fund"
+                        },
+                        "$ref": "#/definitions/FundBalanceResult"
+                    }
+                },
+                "balances": {
+                    "type": "array",
+                    "xml": {
+                        "name": "balance"
+                    },
+                    "items": {
+                        "xml": {
+                            "name": "balance"
+                        },
+                        "$ref": "#/definitions/Balance"
+                    }
+                }
+            }
+        },
+        "BalanceResult": {
+            "type": "object",
+            "properties": {
+                "operator": {
+                    "type": "string",
+                    "example": "John Doe or OP1234",
+                    "description": "The POS operator - for reporting and audit purposes. Suggested that this is always sent in, as it may be required for some payment types - like CBord for higher education use."
+                },
+                "sourceAddress": {
+                    "type": "string",
+                    "example": "10.42.0.41",
+                    "description": "IP address of transaction source for auditing/logging purposes"
+                },
+                "sourceId": {
+                    "type": "string",
+                    "example": "POS-1234",
+                    "description": "Text providing the source of this transaction - kiosk number, POS number, etc., for reporting/audit. Required for some auth types."
+                },
+                "timestamp": {
+                    "type": "integer",
+                    "format": "int64",
+                    "example": "2011-12-03T10:15:30Z",
+                    "description": "Date and time of sale in ISO-8601 format or 8601 with TZ offset (ISO_ZONED_DATE_TIME). Defaults to the current timestamp."
+                },
+                "transactionId": {
+                    "type": "string",
+                    "example": "TR12345678-ABCDE",
+                    "description": "POS transaction id or reference number for invoice. Reusing these will impact WPS-stored invoices. Required for some auth types."
+                },
+                "receiptNumber": {
+                    "type": "string",
+                    "example": "R123456",
+                    "description": "POS receipt number. Use only when not the same as transactionId."
+                },
+                "orderNumber": {
+                    "type": "string",
+                    "example": "2020-03-1234",
+                    "description": "Order number."
+                },
+                "userData": {
+                    "type": "string",
+                    "example": "{ \"my_key\": \"a data value that I will want to use later\" }",
+                    "description": "POS data to be secured and stored with the transaction - json format suggested"
+                },
+                "ruleData": {
+                    "type": "string",
+                    "example": "{ \"my_key\": \"rule data to be applied to rules engine\" }",
+                    "description": "JSON formatted rule dictionary with key/values."
+                },
+                "customer": {
+                    "description": "The customer details to report to the payments, and to record for reporting, auditing, and invoicing.",
+                    "$ref": "#/definitions/Customer"
+                },
+                "payments": {
+                    "type": "array",
+                    "xml": {
+                        "name": "payment"
+                    },
+                    "items": {
+                        "xml": {
+                            "name": "payment"
+                        },
+                        "$ref": "#/definitions/BalancePayment"
+                    }
+                }
+            }
+        },
+        "FundBalanceResult": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "description": "Message from provider.",
+                    "readOnly": true
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Mock",
+                    "description": "The name of the fund source",
+                    "readOnly": true
+                },
+                "totalAvailable": {
+                    "type": "number",
+                    "example": 100.0,
+                    "description": "The total available to spend for the fund source.",
+                    "readOnly": true
+                },
+                "balances": {
+                    "type": "array",
+                    "description": "The balance(s) for this fund source.",
+                    "readOnly": true,
+                    "items": {
+                        "$ref": "#/definitions/Balance"
+                    }
+                }
+            }
+        },
+        "BalanceRequest": {
+            "type": "object",
+            "properties": {
+                "operator": {
+                    "type": "string",
+                    "example": "John Doe or OP1234",
+                    "description": "The POS operator - for reporting and audit purposes. Suggested that this is always sent in, as it may be required for some payment types - like CBord for higher education use."
+                },
+                "sourceAddress": {
+                    "type": "string",
+                    "example": "10.42.0.41",
+                    "description": "IP address of transaction source for auditing/logging purposes"
+                },
+                "sourceId": {
+                    "type": "string",
+                    "example": "POS-1234",
+                    "description": "Text providing the source of this transaction - kiosk number, POS number, etc., for reporting/audit. Required for some auth types."
+                },
+                "timestamp": {
+                    "type": "integer",
+                    "format": "int64",
+                    "example": "2011-12-03T10:15:30Z",
+                    "description": "Date and time of sale in ISO-8601 format or 8601 with TZ offset (ISO_ZONED_DATE_TIME). Defaults to the current timestamp."
+                },
+                "transactionId": {
+                    "type": "string",
+                    "example": "TR12345678-ABCDE",
+                    "description": "POS transaction id or reference number for invoice. Reusing these will impact WPS-stored invoices. Required for some auth types."
+                },
+                "receiptNumber": {
+                    "type": "string",
+                    "example": "R123456",
+                    "description": "POS receipt number. Use only when not the same as transactionId."
+                },
+                "orderNumber": {
+                    "type": "string",
+                    "example": "2020-03-1234",
+                    "description": "Order number."
+                },
+                "userData": {
+                    "type": "string",
+                    "example": "{ \"my_key\": \"a data value that I will want to use later\" }",
+                    "description": "POS data to be secured and stored with the transaction - json format suggested"
+                },
+                "ruleData": {
+                    "type": "string",
+                    "example": "{ \"my_key\": \"rule data to be applied to rules engine\" }",
+                    "description": "JSON formatted rule dictionary with key/values."
+                },
+                "customer": {
+                    "description": "The customer details to report to the payments, and to record for reporting, auditing, and invoicing.",
+                    "$ref": "#/definitions/Customer"
+                },
+                "payments": {
+                    "type": "array",
+                    "xml": {
+                        "name": "payment"
+                    },
+                    "items": {
+                        "xml": {
+                            "name": "payment"
+                        },
+                        "$ref": "#/definitions/BasePayment"
+                    }
+                }
+            }
+        },
+        "BasePayment": {
+            "type": "object",
+            "required": [
+                "apiKey"
+            ],
+            "properties": {
+                "apiKey": {
+                    "type": "string",
+                    "example": "2bfc3aea-cf37-4341-8139-c4db84be7e17",
+                    "description": "The api key provided by WPS for the specific payment method to use. This must be a key for a payment method authorized on the same account as the current logged-in user."
+                },
+                "account": {
+                    "type": "string",
+                    "example": "45678901",
+                    "description": "The account for the payment method to use. Varies depending on the payment method. For example, the HSN for swiped credit cards, the student id for bursar payments, the folio id for charge-to-room, the card number for gift cards, the account id for in-store credit or CBORD, etc. Either this or the prevAuthId is required."
+                },
+                "maskedAccount": {
+                    "type": "string",
+                    "example": "****8901",
+                    "description": "Masked version of account.",
+                    "readOnly": true
+                },
+                "secondaryId": {
+                    "type": "string",
+                    "example": "456",
+                    "description": "The second \"factor\" id. Varies depending on the payment method. For example, the CVV for tokenized ecomm card payments, or the last name for scholarship payments where it is required by law. Often not required. For example, it is not required for swiped credit cards via the Bolt system."
+                },
+                "periodDesignator": {
+                    "type": "string",
+                    "example": "10/2018 or FA18",
+                    "description": "The time period for this payment type. Varies depending on the payment method. For example, the expiration in MM/YYYY for tokenized ecomm card payments, or the (optional) term for bursar payments in higher education. Often not required. For example, it is not required for swiped credit cards via the Bolt system, and bursar payments will default to the current term. Acceptable formats for manual CardConnect payments:\n* MYY, M/YY\n* MMYY, MM/YY\n* MYYYY, M/YYYY\n* MMYYYY, MM/YYYY\n* YYYY-MM\n"
+                }
+            }
+        },
+        "PaymentResult": {
+            "type": "object",
+            "required": [
+                "apiKey"
+            ],
+            "properties": {
+                "apiKey": {
+                    "type": "string",
+                    "example": "2bfc3aea-cf37-4341-8139-c4db84be7e17",
+                    "description": "The api key provided by WPS for the specific payment method to use. This must be a key for a payment method authorized on the same account as the current logged-in user."
+                },
+                "account": {
+                    "type": "string",
+                    "example": "45678901",
+                    "description": "The account for the payment method to use. Varies depending on the payment method. For example, the HSN for swiped credit cards, the student id for bursar payments, the folio id for charge-to-room, the card number for gift cards, the account id for in-store credit or CBORD, etc. Either this or the prevAuthId is required."
+                },
+                "maskedAccount": {
+                    "type": "string",
+                    "example": "****8901",
+                    "description": "Masked version of account.",
+                    "readOnly": true
+                },
+                "secondaryId": {
+                    "type": "string",
+                    "example": "456",
+                    "description": "The second \"factor\" id. Varies depending on the payment method. For example, the CVV for tokenized ecomm card payments, or the last name for scholarship payments where it is required by law. Often not required. For example, it is not required for swiped credit cards via the Bolt system."
+                },
+                "periodDesignator": {
+                    "type": "string",
+                    "example": "10/2018 or FA18",
+                    "description": "The time period for this payment type. Varies depending on the payment method. For example, the expiration in MM/YYYY for tokenized ecomm card payments, or the (optional) term for bursar payments in higher education. Often not required. For example, it is not required for swiped credit cards via the Bolt system, and bursar payments will default to the current term. Acceptable formats for manual CardConnect payments:\n* MYY, M/YY\n* MMYY, MM/YY\n* MYYYY, M/YYYY\n* MMYYYY, MM/YYYY\n* YYYY-MM\n"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": false,
+                    "description": "If true, the test was successful. Only true if all parts are true; see logs.",
+                    "readOnly": true
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Success",
+                    "description": "Human readable message.",
+                    "readOnly": true
+                },
+                "logs": {
+                    "type": "array",
+                    "xml": {
+                        "name": "log"
+                    },
+                    "readOnly": true,
+                    "items": {
+                        "xml": {
+                            "name": "log"
+                        },
+                        "$ref": "#/definitions/TestOutcome"
+                    }
+                }
+            }
+        },
+        "TestOutcome": {
+            "type": "object",
+            "properties": {
+                "authType": {
+                    "type": "string",
+                    "example": "Mock",
+                    "description": "Authentication backend that was tested.",
+                    "readOnly": true
+                },
+                "authLabel": {
+                    "type": "string",
+                    "example": "Mock",
+                    "description": "Configured label for authentication key.",
+                    "readOnly": true
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": false,
+                    "description": "If true, the test was successful.",
+                    "readOnly": true
+                },
+                "message": {
+                    "type": "string",
+                    "example": "Success",
+                    "description": "Human readable message.",
+                    "readOnly": true
+                }
+            }
+        },
+        "TestResult": {
+            "type": "object",
+            "properties": {
+                "operator": {
+                    "type": "string",
+                    "example": "John Doe or OP1234",
+                    "description": "The POS operator - for reporting and audit purposes. Suggested that this is always sent in, as it may be required for some payment types - like CBord for higher education use."
+                },
+                "sourceAddress": {
+                    "type": "string",
+                    "example": "10.42.0.41",
+                    "description": "IP address of transaction source for auditing/logging purposes"
+                },
+                "sourceId": {
+                    "type": "string",
+                    "example": "POS-1234",
+                    "description": "Text providing the source of this transaction - kiosk number, POS number, etc., for reporting/audit. Required for some auth types."
+                },
+                "timestamp": {
+                    "type": "integer",
+                    "format": "int64",
+                    "example": "2011-12-03T10:15:30Z",
+                    "description": "Date and time of sale in ISO-8601 format or 8601 with TZ offset (ISO_ZONED_DATE_TIME). Defaults to the current timestamp."
+                },
+                "transactionId": {
+                    "type": "string",
+                    "example": "TR12345678-ABCDE",
+                    "description": "POS transaction id or reference number for invoice. Reusing these will impact WPS-stored invoices. Required for some auth types."
+                },
+                "receiptNumber": {
+                    "type": "string",
+                    "example": "R123456",
+                    "description": "POS receipt number. Use only when not the same as transactionId."
+                },
+                "orderNumber": {
+                    "type": "string",
+                    "example": "2020-03-1234",
+                    "description": "Order number."
+                },
+                "userData": {
+                    "type": "string",
+                    "example": "{ \"my_key\": \"a data value that I will want to use later\" }",
+                    "description": "POS data to be secured and stored with the transaction - json format suggested"
+                },
+                "ruleData": {
+                    "type": "string",
+                    "example": "{ \"my_key\": \"rule data to be applied to rules engine\" }",
+                    "description": "JSON formatted rule dictionary with key/values."
+                },
+                "payments": {
+                    "type": "array",
+                    "xml": {
+                        "name": "payment"
+                    },
+                    "items": {
+                        "xml": {
+                            "name": "payment"
+                        },
+                        "$ref": "#/definitions/PaymentResult"
+                    }
+                }
+            }
+        },
+        "TestRequest": {
+            "type": "object",
+            "properties": {
+                "operator": {
+                    "type": "string",
+                    "example": "John Doe or OP1234",
+                    "description": "The POS operator - for reporting and audit purposes. Suggested that this is always sent in, as it may be required for some payment types - like CBord for higher education use."
+                },
+                "sourceAddress": {
+                    "type": "string",
+                    "example": "10.42.0.41",
+                    "description": "IP address of transaction source for auditing/logging purposes"
+                },
+                "sourceId": {
+                    "type": "string",
+                    "example": "POS-1234",
+                    "description": "Text providing the source of this transaction - kiosk number, POS number, etc., for reporting/audit. Required for some auth types."
+                },
+                "timestamp": {
+                    "type": "integer",
+                    "format": "int64",
+                    "example": "2011-12-03T10:15:30Z",
+                    "description": "Date and time of sale in ISO-8601 format or 8601 with TZ offset (ISO_ZONED_DATE_TIME). Defaults to the current timestamp."
+                },
+                "transactionId": {
+                    "type": "string",
+                    "example": "TR12345678-ABCDE",
+                    "description": "POS transaction id or reference number for invoice. Reusing these will impact WPS-stored invoices. Required for some auth types."
+                },
+                "receiptNumber": {
+                    "type": "string",
+                    "example": "R123456",
+                    "description": "POS receipt number. Use only when not the same as transactionId."
+                },
+                "orderNumber": {
+                    "type": "string",
+                    "example": "2020-03-1234",
+                    "description": "Order number."
+                },
+                "userData": {
+                    "type": "string",
+                    "example": "{ \"my_key\": \"a data value that I will want to use later\" }",
+                    "description": "POS data to be secured and stored with the transaction - json format suggested"
+                },
+                "ruleData": {
+                    "type": "string",
+                    "example": "{ \"my_key\": \"rule data to be applied to rules engine\" }",
+                    "description": "JSON formatted rule dictionary with key/values."
+                },
+                "payments": {
+                    "type": "array",
+                    "xml": {
+                        "name": "payment"
+                    },
+                    "items": {
+                        "xml": {
+                            "name": "payment"
+                        },
+                        "$ref": "#/definitions/BasePayment"
+                    }
+                }
+            }
+        },
+        "SidecarCustomerDTO": {
+            "type": "object",
+            "properties": {
+                "studentId": {
+                    "type": "string"
+                },
+                "actualTerm": {
+                    "type": "string"
+                },
+                "activeTerm": {
+                    "type": "string"
+                },
+                "tenantId": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                }
+            }
+        }
+    }
+}
