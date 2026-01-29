@@ -1,0 +1,19 @@
+{
+  "name": "watchman-opt-out",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "upload": "bun run src/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@logtape/file": "^2.0.2",
+    "@logtape/logtape": "^2.0.2"
+  }
+}
