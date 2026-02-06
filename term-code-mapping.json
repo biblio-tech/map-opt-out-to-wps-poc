@@ -1,13 +1,9 @@
 {
-  "description": "Maps CSV term codes to Watchman API-compatible term codes",
+  "description": "Maps CSV term names to Watchman API term codes",
   "mappings": {
-    "Spring 2026": "2026SP",
-    "Summer 2026": "2026SU",
-    "Fall 2026": "2026FA",
-    "Winter 2026": "2026WI",
-    "Spring 2025": "2025SP",
-    "Summer 2025": "2025SU",
-    "Fall 2025": "2025FA",
-    "Winter 2025": "2025WI"
+    "Spring 2026": "26/01",
+    "Summer I 2026": "26/02",
+    "Summer II 2025": "25/03",
+    "Fall 2025": "25/04"
   }
 }

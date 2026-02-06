@@ -4,7 +4,10 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "upload": "bun run src/index.ts"
+    "wps:upload": "bun run src/upload.ts",
+    "wps:status": "bun run src/status.ts",
+    "wps:terms": "bun run src/terms.ts",
+    "wps:terms:map": "bun run src/terms-map.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
