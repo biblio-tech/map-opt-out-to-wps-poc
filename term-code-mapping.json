@@ -1,9 +1,0 @@
-{
-  "description": "Maps CSV term names to Watchman API term codes",
-  "mappings": {
-    "Spring 2026": "26/01",
-    "Summer I 2026": "26/02",
-    "Summer II 2025": "25/03",
-    "Fall 2025": "25/04"
-  }
-}
