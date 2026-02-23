@@ -5,7 +5,7 @@ let cachedToken: string | null = null;
 
 export async function getToken(config: Config): Promise<string> {
   const logger = getAppLogger();
-  const url = `${config.apiBaseUrl}/v1/admin/${config.apiKey}/token?secret=${encodeURIComponent(config.apiSecret)}`;
+  const url = `${config.apiBaseUrl}/cart/v1/admin/${config.apiKey}/token?secret=${encodeURIComponent(config.apiSecret)}`;
 
   logger.info`Fetching auth token...`;
 

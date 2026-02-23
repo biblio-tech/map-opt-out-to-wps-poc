@@ -14,7 +14,7 @@ export async function getStatus(
     throw new Error("No auth token available. Call getToken first.");
   }
 
-  const url = `${config.apiBaseUrl}/v1/admin/status`;
+  const url = `${config.apiBaseUrl}/cart/v1/admin/status`;
 
   logger.debug`GET ${url}`;
 
@@ -69,7 +69,7 @@ export async function getTermList(
     throw new Error("No auth token available. Call getToken first.");
   }
 
-  const url = `${config.billingApiBaseUrl}/v1/term/list`;
+  const url = `${config.apiBaseUrl}/bursar_billing/v1/term/list`;
 
   logger.debug`GET ${url}`;
 
@@ -126,7 +126,7 @@ export async function getAdoptions(
   }
 
   const params = new URLSearchParams({ termCode: term });
-  const url = `${config.billingApiBaseUrl}/v1/adoption/list?${params}`;
+  const url = `${config.apiBaseUrl}/bursar_billing/v1/adoption/list?${params}`;
 
   logger.debug`GET ${url}`;
 
@@ -183,7 +183,7 @@ export async function postOptOut(
     throw new Error("No auth token available. Call getToken first.");
   }
 
-  const url = `${config.apiBaseUrl}/v1/admin/opt_out/${encodeURIComponent(term)}`;
+  const url = `${config.apiBaseUrl}/cart/v1/admin/opt_out/${encodeURIComponent(term)}`;
 
   logger.debug`POST ${url}`;
   logger.debug`Request body: ${JSON.stringify(dto)}`;

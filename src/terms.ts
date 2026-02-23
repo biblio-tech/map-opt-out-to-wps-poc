@@ -10,7 +10,7 @@ async function main() {
   logger.info`Fetching term list...`;
 
   const config = loadConfig();
-  logger.info`Using Billing API: ${config.billingApiBaseUrl}`;
+  logger.info`Using API: ${config.apiBaseUrl}`;
 
   await getToken(config);
 
