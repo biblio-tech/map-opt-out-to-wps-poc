@@ -7,7 +7,8 @@
     "wps:upload": "bun run src/upload.ts",
     "wps:status": "bun run src/status.ts",
     "wps:terms": "bun run src/terms.ts",
-    "wps:terms:map": "bun run src/terms-map.ts"
+    "wps:terms:map": "bun run src/terms-map.ts",
+    "wps:adoptions": "bun run src/adoptions.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

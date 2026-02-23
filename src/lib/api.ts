@@ -113,6 +113,63 @@ export async function getTermList(
   };
 }
 
+export async function getAdoptions(
+  config: Config,
+  term: string,
+  retryOnAuth = true
+): Promise<ApiResponse> {
+  const logger = getAppLogger();
+  const token = getCachedToken();
+
+  if (!token) {
+    throw new Error("No auth token available. Call getToken first.");
+  }
+
+  const params = new URLSearchParams({ termCode: term });
+  const url = `${config.billingApiBaseUrl}/v1/adoption/list?${params}`;
+
+  logger.debug`GET ${url}`;
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      authorization: token,
+      "api-key": config.apiKey,
+    },
+  });
+
+  if (response.status === 401 && retryOnAuth) {
+    logger.info`Token expired, refreshing...`;
+    await refreshToken(config);
+    return getAdoptions(config, term, false);
+  }
+
+  const responseText = await response.text();
+
+  logger.debug`Response status: ${response.status}`;
+  logger.debug`Response body: ${responseText}`;
+
+  if (!response.ok) {
+    return {
+      status: response.status,
+      error: responseText,
+    };
+  }
+
+  let data: unknown;
+  try {
+    data = JSON.parse(responseText);
+  } catch {
+    data = responseText;
+  }
+
+  return {
+    status: response.status,
+    data,
+  };
+}
+
 export async function postOptOut(
   config: Config,
   term: string,
