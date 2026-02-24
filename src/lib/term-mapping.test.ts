@@ -44,7 +44,7 @@ describe("loadTermCodeMappingAsync", () => {
 
   test("loads valid mapping file", async () => {
     const mapping = await loadTermCodeMappingAsync(
-      resolve(import.meta.dir, "../../term-code-mapping.json")
+      resolve(import.meta.dir, "../../data/term-code-mapping.json")
     );
     expect(mapping.mappings).toBeDefined();
     expect(typeof mapping.mappings).toBe("object");
@@ -58,7 +58,7 @@ describe("loadTermCodeMappingAsync", () => {
   });
 
   test("caches loaded mapping", async () => {
-    const path = resolve(import.meta.dir, "../../term-code-mapping.json");
+    const path = resolve(import.meta.dir, "../../data/term-code-mapping.json");
     const mapping1 = await loadTermCodeMappingAsync(path);
     const mapping2 = await loadTermCodeMappingAsync(path);
     expect(mapping1).toBe(mapping2);
@@ -67,7 +67,7 @@ describe("loadTermCodeMappingAsync", () => {
 
 describe("clearTermMappingCache", () => {
   test("allows reloading mapping after clear", async () => {
-    const path = resolve(import.meta.dir, "../../term-code-mapping.json");
+    const path = resolve(import.meta.dir, "../../data/term-code-mapping.json");
 
     const mapping1 = await loadTermCodeMappingAsync(path);
     clearTermMappingCache();

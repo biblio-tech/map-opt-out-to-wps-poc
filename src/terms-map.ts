@@ -55,7 +55,7 @@ async function main() {
     mappings,
   };
 
-  const outputPath = "term-code-mapping.json";
+  const outputPath = "data/term-code-mapping.json";
   await Bun.write(outputPath, JSON.stringify(mapping, null, 2) + "\n");
 
   logger.info`Wrote ${Object.keys(mappings).length} term mappings to ${outputPath}`;

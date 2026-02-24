@@ -14,7 +14,7 @@ export async function loadTermCodeMappingAsync(
     return cachedMapping;
   }
 
-  const mappingPath = filePath ?? resolve(process.cwd(), "term-code-mapping.json");
+  const mappingPath = filePath ?? resolve(process.cwd(), "data/term-code-mapping.json");
 
   const file = Bun.file(mappingPath);
   const exists = await file.exists();

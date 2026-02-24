@@ -98,3 +98,39 @@ export async function parseCSV(filePath: string): Promise<CSVRow[]> {
 
   return rows;
 }
+
+export async function parseCSVRecords(
+  filePath: string
+): Promise<Record<string, string>[]> {
+  const file = Bun.file(filePath);
+  const content = await file.text();
+  const lines = content.split("\n").filter((line) => line.trim() !== "");
+
+  if (lines.length === 0) {
+    return [];
+  }
+
+  const headers = parseCSVLine(lines[0]);
+  const dataLines = lines.slice(1);
+  const records: Record<string, string>[] = [];
+
+  for (const line of dataLines) {
+    const fields = parseCSVLine(line);
+
+    if (fields.length !== headers.length) {
+      console.warn(
+        `Skipping malformed row (expected ${headers.length} fields, got ${fields.length})`
+      );
+      continue;
+    }
+
+    const record: Record<string, string> = {};
+    for (let i = 0; i < headers.length; i++) {
+      record[headers[i]] = fields[i];
+    }
+
+    records.push(record);
+  }
+
+  return records;
+}
