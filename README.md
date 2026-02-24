@@ -1,6 +1,6 @@
 # Watchman Opt-Out Upload
 
-A Bun script to upload opt-out records from a CSV file to the Watchman API.
+A Bun toolset for interacting with the Watchman API, including opt-out record uploads and term management.
 
 ## Setup
 
@@ -16,20 +16,44 @@ A Bun script to upload opt-out records from a CSV file to the Watchman API.
 
 3. Edit `.env` with your API credentials:
    ```
-   WATCHMAN_API_BASE_URL=https://stagingapi.watchmanpaymentsystems.com/wps/rest/cart
+   WATCHMAN_API_BASE_URL=https://stagingapi.watchmanpaymentsystems.com/wps/rest/
    WATCHMAN_API_KEY=your_api_key_here
    WATCHMAN_API_SECRET=your_api_secret_here
    ```
 
-## Usage
+## Available Tasks
+
+### wps:status
+Check the Watchman Cart API status.
 
 ```bash
-bun run upload <csv-file-path>
+bun run wps:status
+```
+
+### wps:terms
+List all terms from the Watchman Billing API.
+
+```bash
+bun run wps:terms
+```
+
+### wps:terms:map
+Fetch terms from the API and update `term-code-mapping.json` with the current term codes.
+
+```bash
+bun run wps:terms:map
+```
+
+### wps:upload
+Upload opt-out records from a CSV file to the Watchman API.
+
+```bash
+bun run wps:upload <csv-file-path>
 ```
 
 Example:
 ```bash
-bun run upload opt-outs.csv
+bun run wps:upload opt-outs.csv
 ```
 
 ## CSV Format

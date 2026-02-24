@@ -20,7 +20,10 @@ export async function loadTermCodeMappingAsync(
   const exists = await file.exists();
 
   if (!exists) {
-    throw new Error(`Term code mapping file not found: ${mappingPath}`);
+    throw new Error(
+      `Term code mapping file not found: ${mappingPath}\n` +
+      `Run 'bun run wps:terms:map' to generate it from the API.`
+    );
   }
 
   const content = await file.json();

@@ -1,5 +1,6 @@
-opt-outs.csv
+*.csv
 ./.claude/settings.local.json
 .env
 logs/
 node_modules/
+term-code-mapping.json

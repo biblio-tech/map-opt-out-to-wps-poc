@@ -5,7 +5,7 @@ export interface Config {
 }
 
 export function loadConfig(): Config {
-  const apiBaseUrl = process.env.WATCHMAN_API_BASE_URL;
+  const apiBaseUrl = process.env.WATCHMAN_API_BASE_URL?.replace(/\/+$/, "");
   const apiKey = process.env.WATCHMAN_API_KEY;
   const apiSecret = process.env.WATCHMAN_API_SECRET;
 
