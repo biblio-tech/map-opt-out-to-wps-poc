@@ -16,7 +16,7 @@ A Bun toolset for interacting with the Watchman API, including opt-out record up
 
 3. Edit `.env` with your API credentials:
    ```
-   WATCHMAN_API_BASE_URL=https://stagingapi.watchmanpaymentsystems.com/wps/rest/cart
+   WATCHMAN_API_BASE_URL=https://stagingapi.watchmanpaymentsystems.com/wps/rest/
    WATCHMAN_API_KEY=your_api_key_here
    WATCHMAN_API_SECRET=your_api_secret_here
    ```
