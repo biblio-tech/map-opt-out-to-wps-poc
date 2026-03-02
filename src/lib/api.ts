@@ -231,7 +231,7 @@ export async function postOptOut(
 }
 
 export interface AdoptionFilter {
-  dept: string;
+  dept?: string;
   course?: string;
   section?: string;
   itemScanCode?: string;
@@ -251,7 +251,8 @@ export async function getAdoptionFiltered(
     throw new Error("No auth token available. Call getToken first.");
   }
 
-  const params = new URLSearchParams({ dept: filters.dept });
+  const params = new URLSearchParams();
+  if (filters.dept) params.set("dept", filters.dept);
   if (filters.course) params.set("course", filters.course);
   if (filters.section) params.set("section", filters.section);
   if (filters.itemScanCode) params.set("itemScanCode", filters.itemScanCode);
@@ -377,7 +378,7 @@ export async function postAdoptionsBulk(
   const body = { adoptions };
 
   logger.debug`POST ${url}`;
-  logger.debug`Request body: ${adoptions.length} adoptions`;
+  logger.debug`Request body: ${JSON.stringify(body)}`;
 
   const response = await fetch(url, {
     method: "POST",
@@ -397,8 +398,10 @@ export async function postAdoptionsBulk(
   }
 
   const responseText = await response.text();
+  const responseHeaders = Object.fromEntries(response.headers.entries());
 
   logger.debug`Response status: ${response.status}`;
+  logger.debug`Response headers: ${JSON.stringify(responseHeaders)}`;
   logger.debug`Response body: ${responseText}`;
 
   if (!response.ok) {

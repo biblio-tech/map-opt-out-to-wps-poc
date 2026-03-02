@@ -99,16 +99,50 @@ export async function parseCSV(filePath: string): Promise<CSVRow[]> {
   return rows;
 }
 
+/**
+ * Join raw lines that are split inside quoted fields back into logical CSV rows.
+ * A line that has an odd number of unescaped quotes is "open", so the next raw
+ * line(s) belong to the same logical row.
+ */
+function joinMultilineFields(rawLines: string[]): string[] {
+  const logical: string[] = [];
+  let buffer = "";
+
+  for (const raw of rawLines) {
+    if (buffer) {
+      buffer += "\n" + raw;
+    } else {
+      buffer = raw;
+    }
+
+    // Count unescaped quotes – an odd total means the field is still open
+    const quoteCount = (buffer.match(/"/g) || []).length;
+    if (quoteCount % 2 === 0) {
+      logical.push(buffer);
+      buffer = "";
+    }
+  }
+
+  // Flush any remaining buffer (malformed trailing row)
+  if (buffer) {
+    logical.push(buffer);
+  }
+
+  return logical;
+}
+
 export async function parseCSVRecords(
   filePath: string
 ): Promise<Record<string, string>[]> {
   const file = Bun.file(filePath);
   const content = await file.text();
-  const lines = content.split("\n").filter((line) => line.trim() !== "");
+  const rawLines = content.split("\n").filter((line) => line.trim() !== "");
 
-  if (lines.length === 0) {
+  if (rawLines.length === 0) {
     return [];
   }
+
+  const lines = joinMultilineFields(rawLines);
 
   const headers = parseCSVLine(lines[0]);
   const dataLines = lines.slice(1);
