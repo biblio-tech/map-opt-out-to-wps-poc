@@ -9,7 +9,8 @@
     "wps:terms": "bun run src/terms.ts",
     "wps:terms:map": "bun run src/terms-map.ts",
     "wps:get-adoptions": "bun run src/get-adoptions.ts",
-    "wps:add-adoptions": "bun run src/add-adoptions.ts"
+    "wps:add-adoptions": "bun run src/add-adoptions.ts",
+    "wps:delete-adoptions": "bun run src/delete-adoptions.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

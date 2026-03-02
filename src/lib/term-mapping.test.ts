@@ -48,7 +48,7 @@ describe("loadTermCodeMappingAsync", () => {
     );
     expect(mapping.mappings).toBeDefined();
     expect(typeof mapping.mappings).toBe("object");
-    expect(mapping.mappings["Spring 2026"]).toBe("2026SP");
+    expect(mapping.mappings["Spring 2026"]).toBe("26/01");
   });
 
   test("throws error for non-existent file", async () => {

@@ -8,11 +8,10 @@ import {
 } from "./lib/course-charge-mapper";
 import { adoptionKey } from "./lib/adoption";
 import { getToken } from "./lib/auth";
-import { postAdoptionsBulk } from "./lib/api";
-import type { Adoption, UploadResult } from "./types";
+import { postAdoption } from "./lib/api";
+import type { Adoption } from "./types";
 import type { TermCodeMapping } from "./lib/term-mapping";
 
-const BATCH_SIZE = 500;
 const DEFAULT_CSV_PATH = "data/course-charge.csv";
 const COURSE_CHARGE_TERM_MAPPING_PATH = "data/course-charge-term-mapping.json";
 const TERM_CODE_MAPPING_PATH = "data/term-code-mapping.json";
@@ -95,61 +94,37 @@ async function main() {
 
   let totalSuccess = 0;
   let totalErrors = 0;
-  let batchCount = 0;
 
-  for (let i = 0; i < adoptions.length; i += BATCH_SIZE) {
-    const batch = adoptions.slice(i, i + BATCH_SIZE);
-    batchCount++;
-
-    logger.info`Uploading batch ${batchCount} (${batch.length} adoptions, ${i + 1}-${Math.min(i + BATCH_SIZE, adoptions.length)} of ${adoptions.length})`;
+  for (let i = 0; i < adoptions.length; i++) {
+    const adoption = adoptions[i];
+    const term = adoption.termCode!;
+    const progress = `(${i + 1} of ${adoptions.length})`;
 
     try {
-      const response = await postAdoptionsBulk(config, batch);
+      const response = await postAdoption(config, term, adoption);
 
       if (response.status === 200) {
-        const result = response.data as UploadResult | undefined;
-
-        if (result?.totalRecords != null) {
-          totalSuccess += result.successfulRecords;
-          totalErrors += result.errorRecords;
-
-          logger.info`Batch ${batchCount}: ${result.successfulRecords} success, ${result.errorRecords} errors`;
-
-          if (result.warnings?.length > 0) {
-            for (const w of result.warnings) {
-              logger.info`Batch ${batchCount} warning at entry ${w.entryNumber}: ${w.messages.join(", ")}`;
-            }
-          }
-          if (result.errors?.length > 0) {
-            for (const e of result.errors) {
-              logger.error`Batch ${batchCount} error at entry ${e.entryNumber}: ${e.messages.join(", ")}`;
-            }
-          }
-        } else {
-          // 200 with empty body — treat the whole batch as successful
-          totalSuccess += batch.length;
-          logger.info`Batch ${batchCount}: ${batch.length} accepted (no response body)`;
-        }
+        totalSuccess++;
+        logger.info`${progress} Created adoption: ${JSON.stringify(response.data)}`;
       } else {
-        logger.error`Batch ${batchCount} failed: ${response.status} - ${response.error}`;
-        totalErrors += batch.length;
+        totalErrors++;
+        logger.error`${progress} Failed ${response.status}: ${response.error}`;
       }
     } catch (error) {
+      totalErrors++;
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      logger.error`Batch ${batchCount} exception: ${errorMessage}`;
-      totalErrors += batch.length;
+      logger.error`${progress} Exception: ${errorMessage}`;
     }
   }
 
-  logger.info`Bulk adoption complete. Batches: ${batchCount}, Success: ${totalSuccess}, Errors: ${totalErrors}, Total unique: ${adoptions.length}`;
+  logger.info`Adoption upload complete. Success: ${totalSuccess}, Errors: ${totalErrors}, Total: ${adoptions.length}`;
 
   console.log("\n=== Summary ===");
   console.log(`Total CSV records: ${records.length}`);
   console.log(`Skipped #N/A: ${skippedNARecords.length}`);
   console.log(`Skipped unmapped: ${skippedUnmappedRecords.length}`);
   console.log(`Unique adoptions: ${adoptions.length}`);
-  console.log(`Batches sent: ${batchCount}`);
   console.log(`Successful: ${totalSuccess}`);
   console.log(`Errors: ${totalErrors}`);
 
