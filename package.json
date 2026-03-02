@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "wps:upload": "bun run src/upload.ts",
+    "wps:add-opt-outs": "bun run src/add-opt-outs.ts",
     "wps:status": "bun run src/status.ts",
     "wps:terms": "bun run src/terms.ts",
     "wps:terms:map": "bun run src/terms-map.ts",

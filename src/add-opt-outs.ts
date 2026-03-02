@@ -5,7 +5,7 @@ import { mapCSVToDTO, UnmappedTermCodeError } from "./lib/mapper";
 import { loadTermCodeMappingAsync } from "./lib/term-mapping";
 import { getToken } from "./lib/auth";
 import { postOptOut } from "./lib/api";
-import { AdoptionCache, ensureAdoption } from "./lib/adoption";
+import { AdoptionCache, checkAdoptionExists } from "./lib/adoption";
 import { EnrollmentCache, checkEnrollment } from "./lib/enrollment";
 
 async function main() {
@@ -14,7 +14,7 @@ async function main() {
 
   const csvPath = process.argv[2];
   if (!csvPath) {
-    console.error("Usage: bun run src/upload.ts <csv-file-path>");
+    console.error("Usage: bun run wps:add-opt-outs <csv-file-path>");
     process.exit(1);
   }
 
@@ -37,7 +37,7 @@ async function main() {
   let successCount = 0;
   let errorCount = 0;
   let skippedCount = 0;
-  let adoptionFailCount = 0;
+  let missingAdoptionCount = 0;
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]!;
@@ -56,11 +56,9 @@ async function main() {
 
     const termCode = dto.termCode!;
 
-    const adopted = await ensureAdoption(config, dto, adoptionCache);
-    if (!adopted) {
-      logger.error`Record ${i + 1} skipped: could not ensure adoption for ${dto.departmentCode}-${dto.courseCode}-${dto.sectionCode} ISBN ${dto.itemScanCode}`;
-      adoptionFailCount++;
-      continue;
+    const adoptionExists = await checkAdoptionExists(config, dto, adoptionCache);
+    if (!adoptionExists) {
+      missingAdoptionCount++;
     }
 
     await checkEnrollment(config, termCode, dto.studentId!, {
@@ -89,14 +87,23 @@ async function main() {
     }
   }
 
-  logger.info`Upload complete. Success: ${successCount}, Errors: ${errorCount}, Skipped: ${skippedCount}, Adoption failures: ${adoptionFailCount}, Total: ${rows.length}`;
+  logger.info`Upload complete. Success: ${successCount}, Errors: ${errorCount}, Skipped: ${skippedCount}, Missing adoptions: ${missingAdoptionCount}, Total: ${rows.length}`;
 
   console.log("\n=== Summary ===");
   console.log(`Total records: ${rows.length}`);
   console.log(`Successful: ${successCount}`);
   console.log(`Failed: ${errorCount}`);
   console.log(`Skipped (unmapped term): ${skippedCount}`);
-  console.log(`Skipped (adoption failure): ${adoptionFailCount}`);
+  console.log(`Records with missing adoption: ${missingAdoptionCount}`);
+
+  const missingAdoptions = adoptionCache.missingKeys;
+  if (missingAdoptions.length > 0) {
+    console.log(`\n=== Missing Adoptions (${missingAdoptions.length}) ===`);
+    console.log("term|dept|course|section|ISBN");
+    for (const key of missingAdoptions) {
+      console.log(key.replace(/\|/g, " | "));
+    }
+  }
 }
 
 main().catch((error) => {

@@ -70,7 +70,7 @@ Example:
 bun run wps:add-adoptions data/course-charge.csv
 ```
 
-### wps:upload
+### wps:add-opt-outs
 Upload opt-out records from a CSV file to the Watchman API.
 
 Before each opt-out is posted:
@@ -78,12 +78,12 @@ Before each opt-out is posted:
 - **Enrollment check**: Verifies the student is enrolled at WPS for the course. If missing, logs a debug message (does not block the opt-out).
 
 ```bash
-bun run wps:upload <csv-file-path>
+bun run wps:add-opt-outs <csv-file-path>
 ```
 
 Example:
 ```bash
-bun run wps:upload data/opt-outs.csv
+bun run wps:add-opt-outs data/opt-outs.csv
 ```
 
 ## CSV Format

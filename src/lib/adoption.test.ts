@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { adoptionKey, dtoToAdoption, AdoptionCache } from "./adoption";
-import type { OptInOptOutDTO } from "../types";
+import { adoptionKey, AdoptionCache } from "./adoption";
 
 describe("adoptionKey", () => {
   test("builds composite key from all fields", () => {
@@ -13,47 +12,6 @@ describe("adoptionKey", () => {
     expect(adoptionKey("2026SP", "SW", "685", "", "9780190916510")).toBe(
       "2026SP|SW|685||9780190916510"
     );
-  });
-});
-
-describe("dtoToAdoption", () => {
-  const dto: OptInOptOutDTO = {
-    termCode: "2026SP",
-    crn: "241018",
-    departmentCode: "SW",
-    courseCode: "685",
-    sectionCode: "MOL2",
-    studentId: "3575856",
-    itemScanCode: "9780190916510",
-    title: "Program Evaluation",
-    publisher: "Oxford University Press",
-    optOut: true,
-    contentType: "DIGITAL",
-  };
-
-  test("maps DTO fields to Adoption model", () => {
-    const adoption = dtoToAdoption(dto);
-
-    expect(adoption.termCode).toBe("2026SP");
-    expect(adoption.crn).toBe("241018");
-    expect(adoption.deptCode).toBe("SW");
-    expect(adoption.courseCode).toBe("685");
-    expect(adoption.section).toBe("MOL2");
-    expect(adoption.itemScanCode).toBe("9780190916510");
-    expect(adoption.itemName).toBe("Program Evaluation");
-    expect(adoption.publisher).toBe("Oxford University Press");
-  });
-
-  test("defaults costToStudent to 0", () => {
-    const adoption = dtoToAdoption(dto);
-    expect(adoption.costToStudent).toBe(0);
-  });
-
-  test("does not include student-specific fields", () => {
-    const adoption = dtoToAdoption(dto);
-    expect(adoption).not.toHaveProperty("studentId");
-    expect(adoption).not.toHaveProperty("optOut");
-    expect(adoption).not.toHaveProperty("contentType");
   });
 });
 
@@ -83,5 +41,27 @@ describe("AdoptionCache", () => {
     cache.add("key1");
     cache.add("key1");
     expect(cache.size).toBe(1);
+  });
+
+  test("tracks missing adoptions", () => {
+    const cache = new AdoptionCache();
+    expect(cache.isMissing("key1")).toBe(false);
+
+    cache.addMissing("key1");
+    expect(cache.isMissing("key1")).toBe(true);
+  });
+
+  test("returns missing keys", () => {
+    const cache = new AdoptionCache();
+    cache.addMissing("key1");
+    cache.addMissing("key2");
+    expect(cache.missingKeys).toEqual(["key1", "key2"]);
+  });
+
+  test("does not double-count duplicate missing keys", () => {
+    const cache = new AdoptionCache();
+    cache.addMissing("key1");
+    cache.addMissing("key1");
+    expect(cache.missingKeys).toEqual(["key1"]);
   });
 });

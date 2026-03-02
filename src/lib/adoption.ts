@@ -1,6 +1,6 @@
 import type { Config } from "../config";
 import type { Adoption, OptInOptOutDTO } from "../types";
-import { getAdoptionFiltered, postAdoption } from "./api";
+import { getAdoptionFiltered } from "./api";
 import { getAppLogger } from "./logger";
 
 export function adoptionKey(
@@ -13,29 +13,28 @@ export function adoptionKey(
   return `${termCode}|${deptCode}|${courseCode}|${section}|${itemScanCode}`;
 }
 
-export function dtoToAdoption(dto: OptInOptOutDTO): Adoption {
-  return {
-    termCode: dto.termCode,
-    crn: dto.crn,
-    deptCode: dto.departmentCode!,
-    courseCode: dto.courseCode!,
-    section: dto.sectionCode!,
-    costToStudent: 0,
-    publisher: dto.publisher,
-    itemScanCode: dto.itemScanCode!,
-    itemName: dto.title!,
-  };
-}
-
 export class AdoptionCache {
   private confirmed = new Set<string>();
+  private missing = new Set<string>();
 
   has(key: string): boolean {
     return this.confirmed.has(key);
   }
 
+  isMissing(key: string): boolean {
+    return this.missing.has(key);
+  }
+
   add(key: string): void {
     this.confirmed.add(key);
+  }
+
+  addMissing(key: string): void {
+    this.missing.add(key);
+  }
+
+  get missingKeys(): string[] {
+    return [...this.missing];
   }
 
   get size(): number {
@@ -43,7 +42,7 @@ export class AdoptionCache {
   }
 }
 
-export async function ensureAdoption(
+export async function checkAdoptionExists(
   config: Config,
   dto: OptInOptOutDTO,
   cache: AdoptionCache
@@ -59,6 +58,10 @@ export async function ensureAdoption(
 
   if (cache.has(key)) {
     return true;
+  }
+
+  if (cache.isMissing(key)) {
+    return false;
   }
 
   const getResult = await getAdoptionFiltered(config, termCode, {
@@ -88,16 +91,7 @@ export async function ensureAdoption(
     }
   }
 
-  logger.info`Creating adoption for ${deptCode}-${courseCode}-${section} ISBN ${itemScanCode} in term ${termCode}`;
-
-  const adoption = dtoToAdoption(dto);
-  const postResult = await postAdoption(config, termCode, adoption);
-
-  if (postResult.status === 200) {
-    cache.add(key);
-    return true;
-  }
-
-  logger.error`Adoption creation failed: ${postResult.status} - ${postResult.error}`;
+  logger.error`Missing adoption: ${deptCode}-${courseCode}-${section} ISBN ${itemScanCode} in term ${termCode}`;
+  cache.addMissing(key);
   return false;
 }
