@@ -58,75 +58,81 @@ describe("mapCourseChargeToAdoption", () => {
   };
 
   test("maps fields correctly", () => {
-    const adoption = mapCourseChargeToAdoption(
+    const result = mapCourseChargeToAdoption(
       baseRecord,
       courseChargeTermMapping,
       termCodeMapping
     );
 
-    expect(adoption).not.toBeNull();
-    expect(adoption!.termCode).toBe("2026SP");
-    expect(adoption!.crn).toBe("235907");
-    expect(adoption!.deptCode).toBe("ACC");
-    expect(adoption!.courseCode).toBe("201");
-    expect(adoption!.section).toBe("01");
-    expect(adoption!.itemScanCode).toBe("9781265321147");
-    expect(adoption!.itemName).toBe("Financial Accounting");
-    expect(adoption!.costToStudent).toBe(125.98);
+    expect(result.adoption).toBeDefined();
+    expect(result.skipReason).toBeUndefined();
+    const adoption = result.adoption!;
+    expect(adoption.termCode).toBe("2026SP");
+    expect(adoption.crn).toBe("235907");
+    expect(adoption.deptCode).toBe("ACC");
+    expect(adoption.courseCode).toBe("201");
+    expect(adoption.section).toBe("01");
+    expect(adoption.itemScanCode).toBe("9781265321147");
+    expect(adoption.itemName).toBe("Financial Accounting");
+    expect(adoption.costToStudent).toBe(125.98);
   });
 
-  test("returns null for #N/A term", () => {
+  test("returns skipReason for #N/A term", () => {
     const record = { ...baseRecord, Term: "#N/A" };
-    const adoption = mapCourseChargeToAdoption(
+    const result = mapCourseChargeToAdoption(
       record,
       courseChargeTermMapping,
       termCodeMapping
     );
-    expect(adoption).toBeNull();
+    expect(result.adoption).toBeUndefined();
+    expect(result.skipReason).toBe("term is #N/A (no term assigned)");
   });
 
-  test("returns null for empty term", () => {
+  test("returns skipReason for empty term", () => {
     const record = { ...baseRecord, Term: "" };
-    const adoption = mapCourseChargeToAdoption(
+    const result = mapCourseChargeToAdoption(
       record,
       courseChargeTermMapping,
       termCodeMapping
     );
-    expect(adoption).toBeNull();
+    expect(result.adoption).toBeUndefined();
+    expect(result.skipReason).toBe("empty term");
   });
 
-  test("returns null for unmapped course-charge term", () => {
-    const record = { ...baseRecord, Term: "Summer 2026" };
-    const adoption = mapCourseChargeToAdoption(
+  test("returns skipReason for unmapped course-charge term", () => {
+    const record = { ...baseRecord, Term: " Summer 2026 " };
+    const result = mapCourseChargeToAdoption(
       record,
       courseChargeTermMapping,
       termCodeMapping
     );
-    expect(adoption).toBeNull();
+    expect(result.adoption).toBeUndefined();
+    expect(result.skipReason).toBe('unmapped course-charge term: " Summer 2026 "');
   });
 
-  test("returns null for unmapped canonical term", () => {
+  test("returns skipReason for unmapped canonical term", () => {
     const mapping: CourseChargeTermMapping = {
-      "Fall Semester 2026": "Fall 2026",
+      "Fall Semester 2026": " Fall 2026 ",
     };
     const record = { ...baseRecord, Term: "Fall Semester 2026" };
-    const adoption = mapCourseChargeToAdoption(
+    const result = mapCourseChargeToAdoption(
       record,
       mapping,
       termCodeMapping
     );
-    expect(adoption).toBeNull();
+    expect(result.adoption).toBeUndefined();
+    expect(result.skipReason).toBe('unmapped term code: " Fall 2026 "');
   });
 
   test("maps Spring A term variant", () => {
     const record = { ...baseRecord, Term: "Spring A 2026" };
-    const adoption = mapCourseChargeToAdoption(
+    const result = mapCourseChargeToAdoption(
       record,
       courseChargeTermMapping,
       termCodeMapping
     );
 
-    expect(adoption).not.toBeNull();
-    expect(adoption!.termCode).toBe("2026SA");
+    expect(result.adoption).toBeDefined();
+    expect(result.adoption!.termCode).toBe("2026SA");
   });
 });

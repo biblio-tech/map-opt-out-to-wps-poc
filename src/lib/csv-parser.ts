@@ -131,6 +131,70 @@ function joinMultilineFields(rawLines: string[]): string[] {
   return logical;
 }
 
+export interface CSVValidationError {
+  row: number;
+  message: string;
+}
+
+export interface CSVValidationResult {
+  valid: boolean;
+  headers: string[];
+  totalRows: number;
+  missingHeaders: string[];
+  rowErrors: CSVValidationError[];
+}
+
+export async function validateCSVFile(
+  filePath: string,
+  requiredHeaders: string[]
+): Promise<CSVValidationResult> {
+  const file = Bun.file(filePath);
+  const content = await file.text();
+  const rawLines = content.split("\n").filter((line) => line.trim() !== "");
+
+  if (rawLines.length === 0) {
+    return {
+      valid: false,
+      headers: [],
+      totalRows: 0,
+      missingHeaders: requiredHeaders,
+      rowErrors: [{ row: 0, message: "File is empty" }],
+    };
+  }
+
+  const lines = joinMultilineFields(rawLines);
+  const headers = parseCSVLine(lines[0]);
+  const missingHeaders = requiredHeaders.filter((h) => !headers.includes(h));
+  const dataLines = lines.slice(1);
+  const rowErrors: CSVValidationError[] = [];
+
+  for (let i = 0; i < dataLines.length; i++) {
+    const fields = parseCSVLine(dataLines[i]);
+    if (fields.length !== headers.length) {
+      rowErrors.push({
+        row: i + 2, // 1-indexed, +1 for header row
+        message: `Expected ${headers.length} fields, got ${fields.length}`,
+      });
+    }
+    for (let f = 0; f < fields.length; f++) {
+      if (fields[f].includes("\r")) {
+        rowErrors.push({
+          row: i + 2,
+          message: `Field "${headers[f] ?? f}" contains embedded carriage return (CRLF)`,
+        });
+      }
+    }
+  }
+
+  return {
+    valid: missingHeaders.length === 0 && rowErrors.length === 0,
+    headers,
+    totalRows: dataLines.length,
+    missingHeaders,
+    rowErrors,
+  };
+}
+
 export async function parseCSVRecords(
   filePath: string
 ): Promise<Record<string, string>[]> {

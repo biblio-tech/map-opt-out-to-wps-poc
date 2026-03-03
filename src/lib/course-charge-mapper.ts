@@ -12,28 +12,35 @@ export function parseCostToStudent(price: string): number {
   return Number.isNaN(value) ? 0 : value;
 }
 
+export type MapResult =
+  | { adoption: Adoption; skipReason?: undefined }
+  | { adoption?: undefined; skipReason: string };
+
 export function mapCourseChargeToAdoption(
   record: Record<string, string>,
   courseChargeTermMapping: CourseChargeTermMapping,
   termCodeMapping: TermCodeMapping
-): Adoption | null {
+): MapResult {
   const logger = getAppLogger();
 
   const term = record["Term"];
-  if (!term || term === "#N/A") {
-    return null;
+  if (!term) {
+    return { skipReason: "empty term" };
+  }
+  if (term === "#N/A") {
+    return { skipReason: "term is #N/A (no term assigned)" };
   }
 
   const canonicalTerm = courseChargeTermMapping[term];
   if (!canonicalTerm) {
     logger.warn`Unmapped course-charge term: "${term}"`;
-    return null;
+    return { skipReason: `unmapped course-charge term: "${term}"` };
   }
 
   const termCode = mapTermCode(canonicalTerm, termCodeMapping);
   if (!termCode) {
     logger.warn`No term code found for canonical term: "${canonicalTerm}"`;
-    return null;
+    return { skipReason: `unmapped term code: "${canonicalTerm}"` };
   }
 
   const courseAndSection = record["Course Code"] ?? "";
@@ -41,13 +48,15 @@ export function mapCourseChargeToAdoption(
     parseCourseAndSectionCode(courseAndSection);
 
   return {
-    termCode,
-    crn: record["CRN"],
-    deptCode: departmentCode,
-    courseCode,
-    section: sectionCode,
-    costToStudent: parseCostToStudent(record["BibliU Pricing"] ?? "0"),
-    itemScanCode: record["Req. ISBN"],
-    itemName: record["Title"],
+    adoption: {
+      termCode,
+      crn: record["CRN"],
+      deptCode: departmentCode,
+      courseCode,
+      section: sectionCode,
+      costToStudent: parseCostToStudent(record["BibliU Pricing"] ?? "0"),
+      itemScanCode: record["Req. ISBN"],
+      itemName: record["Title"],
+    },
   };
 }
