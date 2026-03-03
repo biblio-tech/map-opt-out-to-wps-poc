@@ -94,6 +94,8 @@ async function main() {
 
   let totalSuccess = 0;
   let totalErrors = 0;
+  const successfulAdoptions: Adoption[] = [];
+  const erroredAdoptions: { adoption: Adoption; error: string }[] = [];
 
   for (let i = 0; i < adoptions.length; i++) {
     const adoption = adoptions[i];
@@ -105,15 +107,18 @@ async function main() {
 
       if (response.status === 200) {
         totalSuccess++;
+        successfulAdoptions.push(adoption);
         logger.info`${progress} Created adoption: ${JSON.stringify(response.data)}`;
       } else {
         totalErrors++;
+        erroredAdoptions.push({ adoption, error: `${response.status}: ${response.error}` });
         logger.error`${progress} Failed ${response.status}: ${response.error}`;
       }
     } catch (error) {
       totalErrors++;
       const errorMessage =
         error instanceof Error ? error.message : String(error);
+      erroredAdoptions.push({ adoption, error: errorMessage });
       logger.error`${progress} Exception: ${errorMessage}`;
     }
   }
@@ -127,6 +132,31 @@ async function main() {
   console.log(`Unique adoptions: ${adoptions.length}`);
   console.log(`Successful: ${totalSuccess}`);
   console.log(`Errors: ${totalErrors}`);
+
+  if (successfulAdoptions.length > 0) {
+    console.log(`\n=== Successful Adoptions (${successfulAdoptions.length}) ===`);
+    console.log("term,dept,course,section,ISBN,title,costToStudent");
+    for (const a of successfulAdoptions) {
+      const title = a.itemName.includes(",") || a.itemName.includes('"')
+        ? `"${a.itemName.replace(/"/g, '""')}"`
+        : a.itemName;
+      console.log(`${a.termCode},${a.deptCode},${a.courseCode},${a.section},${a.itemScanCode},${title},${a.costToStudent}`);
+    }
+  }
+
+  if (erroredAdoptions.length > 0) {
+    console.log(`\n=== Errored Adoptions (${erroredAdoptions.length}) ===`);
+    console.log("term,dept,course,section,ISBN,title,costToStudent,error");
+    for (const { adoption: a, error } of erroredAdoptions) {
+      const title = a.itemName.includes(",") || a.itemName.includes('"')
+        ? `"${a.itemName.replace(/"/g, '""')}"`
+        : a.itemName;
+      const escapedError = error.includes(",") || error.includes('"')
+        ? `"${error.replace(/"/g, '""')}"`
+        : error;
+      console.log(`${a.termCode},${a.deptCode},${a.courseCode},${a.section},${a.itemScanCode},${title},${a.costToStudent},${escapedError}`);
+    }
+  }
 
   const allSkipped = [
     ...skippedNARecords.map((r) => ({ reason: "#N/A", record: r })),
