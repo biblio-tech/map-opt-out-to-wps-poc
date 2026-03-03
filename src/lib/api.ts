@@ -263,10 +263,8 @@ export async function postAdoption(
   // Strip termCode from the body — the cart API takes term from the URL path
   const { termCode: _, ...body } = adoption;
 
-  const payload = [body];
-
   logger.debug`POST ${url}`;
-  logger.debug`Request body: ${JSON.stringify(payload)}`;
+  logger.debug`Request body: ${JSON.stringify(body)}`;
 
   const response = await fetch(url, {
     method: "POST",
@@ -276,7 +274,7 @@ export async function postAdoption(
       authorization: token,
       "api-key": config.apiKey,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(body),
   });
 
   if (response.status === 401 && retryOnAuth) {
