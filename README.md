@@ -83,12 +83,15 @@ For each CSV row the following steps are performed:
 If a CRN cannot be found in any candidate term, the row is skipped.
 
 ```bash
-bun run wps:add-opt-outs <csv-file-path>
+bun run wps:add-opt-outs <csv-file-path> [--dry-run]
 ```
 
-Example:
+Use `--dry-run` to run all validation steps (term resolution, adoption check, enrollment check) without posting opt-outs to the API. Each record's target URL and request body are written to the debug log instead.
+
+Examples:
 ```bash
 bun run wps:add-opt-outs data/opt-outs.csv
+bun run wps:add-opt-outs data/opt-outs.csv --dry-run
 ```
 
 ### wps:validate-opt-outs

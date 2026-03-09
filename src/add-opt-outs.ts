@@ -12,12 +12,17 @@ async function main() {
   await setupLogger();
   const logger = getAppLogger();
 
-  const csvPath = process.argv[2];
+  const args = process.argv.slice(2);
+  const dryRun = args.includes("--dry-run");
+  const csvPath = args.find((a) => !a.startsWith("--"));
   if (!csvPath) {
-    console.error("Usage: bun run wps:add-opt-outs <csv-file-path>");
+    console.error("Usage: bun run wps:add-opt-outs <csv-file-path> [--dry-run]");
     process.exit(1);
   }
 
+  if (dryRun) {
+    logger.info`DRY RUN mode — no opt-outs will be posted`;
+  }
   logger.info`Starting opt-out upload from ${csvPath}`;
 
   const config = loadConfig();
@@ -91,6 +96,13 @@ async function main() {
     }
 
     logger.info`Processing record ${i + 1}/${rows.length}: ${row.studentid} - ${row.ISBN} (term: ${resolvedTermCode})`;
+
+    if (dryRun) {
+      const url = `${config.apiBaseUrl}/cart/v1/admin/opt_out/${encodeURIComponent(resolvedTermCode)}`;
+      logger.debug`[DRY RUN] POST ${url} ${JSON.stringify(dto)}`;
+      successCount++;
+      continue;
+    }
 
     try {
       const response = await postOptOut(config, resolvedTermCode, dto);
