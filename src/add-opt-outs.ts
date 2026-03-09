@@ -6,7 +6,7 @@ import { loadTermCodeMappingAsync, mapTermCode } from "./lib/term-mapping";
 import { getToken } from "./lib/auth";
 import { postOptOut } from "./lib/api";
 import { AdoptionCache, CRNTermCache, checkAdoptionExists, resolveTermCodeByCRN } from "./lib/adoption";
-import { EnrollmentCache, checkEnrollment } from "./lib/enrollment";
+import { loadCourseEnrollment, isEnrolled, suggestCRN } from "./lib/course-enrollment";
 
 async function main() {
   await setupLogger();
@@ -32,8 +32,11 @@ async function main() {
   const rows = await parseCSV(csvPath);
   logger.info`Parsed ${rows.length} records from CSV`;
 
+  logger.info`Loading course enrollment data...`;
+  const enrollment = await loadCourseEnrollment();
+  logger.info`Loaded ${enrollment.totalRecords} enrollment records`;
+
   const adoptionCache = new AdoptionCache();
-  const enrollmentCache = new EnrollmentCache();
   const crnTermCache = new CRNTermCache();
 
   let successCount = 0;
@@ -41,6 +44,7 @@ async function main() {
   let skippedCount = 0;
   let missingAdoptionCount = 0;
   let termMismatchCount = 0;
+  let enrollmentMismatchCount = 0;
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]!;
@@ -76,11 +80,15 @@ async function main() {
       missingAdoptionCount++;
     }
 
-    await checkEnrollment(config, resolvedTermCode, dto.studentId!, {
-      deptCode: dto.departmentCode!,
-      courseCode: dto.courseCode!,
-      section: dto.sectionCode!,
-    }, enrollmentCache);
+    if (!isEnrolled(enrollment, row.studentid, row.crn)) {
+      enrollmentMismatchCount++;
+      const altCrn = suggestCRN(enrollment, row.studentid, row.courseandsectioncode);
+      if (altCrn) {
+        logger.error`Record ${i + 1}: student ${row.studentid} not enrolled for CRN ${row.crn} (${row.courseandsectioncode}), suggested CRN: ${altCrn}`;
+      } else {
+        logger.error`Record ${i + 1}: student ${row.studentid} not enrolled for CRN ${row.crn} (${row.courseandsectioncode}), no matching enrollment found`;
+      }
+    }
 
     logger.info`Processing record ${i + 1}/${rows.length}: ${row.studentid} - ${row.ISBN} (term: ${resolvedTermCode})`;
 
@@ -102,7 +110,7 @@ async function main() {
     }
   }
 
-  logger.info`Upload complete. Success: ${successCount}, Errors: ${errorCount}, Skipped: ${skippedCount}, Missing adoptions: ${missingAdoptionCount}, Term mismatches: ${termMismatchCount}, Total: ${rows.length}`;
+  logger.info`Upload complete. Success: ${successCount}, Errors: ${errorCount}, Skipped: ${skippedCount}, Missing adoptions: ${missingAdoptionCount}, Term mismatches: ${termMismatchCount}, Enrollment mismatches: ${enrollmentMismatchCount}, Total: ${rows.length}`;
 
   console.log("\n=== Summary ===");
   console.log(`Total records: ${rows.length}`);
@@ -111,6 +119,7 @@ async function main() {
   console.log(`Skipped (unresolved CRN): ${skippedCount}`);
   console.log(`Records with missing adoption: ${missingAdoptionCount}`);
   console.log(`Term mismatches (CSV vs resolved): ${termMismatchCount}`);
+  console.log(`Enrollment mismatches: ${enrollmentMismatchCount}`);
 
   const missingAdoptions = adoptionCache.missingKeys;
   if (missingAdoptions.length > 0) {

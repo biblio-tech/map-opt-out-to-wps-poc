@@ -66,21 +66,6 @@ export interface AdoptionWrapper {
   adoptions: Adoption[];
 }
 
-export interface Enrollment {
-  termCode?: string;
-  deptCode?: string;
-  courseCode?: string;
-  section?: string;
-  customer?: string;
-  faLoad?: string;
-  academicCareer?: string;
-  createdAt?: number;
-}
-
-export interface EnrollmentWrapper {
-  enrollments: Enrollment[];
-}
-
 export interface UploadMessage {
   entryNumber: number;
   messages: string[];
