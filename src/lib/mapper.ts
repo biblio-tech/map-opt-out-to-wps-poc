@@ -1,6 +1,4 @@
 import type { CSVRow, OptInOptOutDTO } from "../types";
-import type { TermCodeMapping } from "./term-mapping";
-import { mapTermCode } from "./term-mapping";
 
 export function mapContentType(contenttype: string): string {
   const normalized = contenttype.toLowerCase().trim();
@@ -26,16 +24,16 @@ export function parseCourseAndSectionCode(
 
   if (parts.length >= 3) {
     return {
-      departmentCode: parts[0],
-      courseCode: parts[1],
+      departmentCode: parts[0]!,
+      courseCode: parts[1]!,
       sectionCode: parts.slice(2).join("-"),
     };
   }
 
   if (parts.length === 2) {
     return {
-      departmentCode: parts[0],
-      courseCode: parts[1],
+      departmentCode: parts[0]!,
+      courseCode: parts[1]!,
       sectionCode: "",
     };
   }
@@ -47,25 +45,13 @@ export function parseCourseAndSectionCode(
   };
 }
 
-export class UnmappedTermCodeError extends Error {
-  constructor(public readonly csvTerm: string) {
-    super(`No mapping found for term code: "${csvTerm}"`);
-    this.name = "UnmappedTermCodeError";
-  }
-}
-
 export function mapCSVToDTO(
   row: CSVRow,
-  termMapping: TermCodeMapping
+  termCode: string
 ): OptInOptOutDTO {
   const { departmentCode, courseCode, sectionCode } = parseCourseAndSectionCode(
     row.courseandsectioncode
   );
-
-  const termCode = mapTermCode(row.term, termMapping);
-  if (termCode === null) {
-    throw new UnmappedTermCodeError(row.term);
-  }
 
   return {
     termCode,

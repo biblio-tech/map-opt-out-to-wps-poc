@@ -73,9 +73,14 @@ bun run wps:add-adoptions data/course-charge.csv
 ### wps:add-opt-outs
 Upload opt-out records from a CSV file to the Watchman API.
 
-Before each opt-out is posted:
-- **Adoption check**: Verifies the adoption exists at WPS for the course+ISBN. If missing, creates it automatically.
-- **Enrollment check**: Verifies the student is enrolled at WPS for the course. If missing, logs a debug message (does not block the opt-out).
+For each CSV row the following steps are performed:
+
+1. **Term resolution**: The correct term code is resolved by querying the WPS cart adoption API by CRN and department across all candidate terms listed in `data/term-code-mapping.json`. The `term` column in the CSV is **not** used to determine the API term code, because due to Spring full, Spring A and Spring B and re-used sections it cannot be relied upon. If the resolved term differs from the CSV term, a warning is logged.
+2. **Adoption check**: Verifies the adoption exists at WPS for the resolved term + course + ISBN. If missing, the record is logged but processing continues.
+3. **Enrollment check**: Verifies the student is enrolled at WPS for the course. If missing, logs a debug message (does not block the opt-out).
+4. **Opt-out POST**: Sends the opt-out/opt-in to the WPS API using the resolved term code.
+
+If a CRN cannot be found in any candidate term, the row is skipped.
 
 ```bash
 bun run wps:add-opt-outs <csv-file-path>
@@ -132,7 +137,8 @@ The `data/` directory is gitignored and used for local data files:
 ## Processing
 
 - Records are processed one at a time
-- Before each opt-out, the adoption is verified (and created if missing) and the student enrollment is checked
+- The term code for each record is resolved by querying the adoption API by CRN, not from the CSV `term` column
+- CRN-to-term lookups are cached so each unique CRN is resolved once
 - On 401 errors, the token is automatically refreshed and the request retried
 - Other errors are logged and processing continues to the next record
-- A summary is printed at completion showing success/failure/skipped counts
+- A summary is printed at completion showing success/failure/skipped counts, term mismatches, and any unresolved CRNs

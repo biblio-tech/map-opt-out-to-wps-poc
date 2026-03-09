@@ -71,26 +71,26 @@ export async function parseCSV(filePath: string): Promise<CSVRow[]> {
     }
 
     const row: CSVRow = {
-      dateSent: fields[0],
-      term: fields[1],
-      crn: fields[2],
-      courseandsectioncode: fields[3],
-      studentid: fields[4],
-      firstname: fields[5],
-      lastname: fields[6],
-      email: fields[7],
-      ISBN: fields[8],
-      title: fields[9],
-      author: fields[10],
-      publisher: fields[11],
-      startdate: fields[12],
-      censusdate: fields[13],
-      enddate: fields[14],
-      coursetitle: fields[15],
-      coursecode: fields[16],
-      enrollmentstatus: fields[17],
-      optout: fields[18],
-      contenttype: fields[19],
+      dateSent: fields[0]!,
+      term: fields[1]!,
+      crn: fields[2]!,
+      courseandsectioncode: fields[3]!,
+      studentid: fields[4]!,
+      firstname: fields[5]!,
+      lastname: fields[6]!,
+      email: fields[7]!,
+      ISBN: fields[8]!,
+      title: fields[9]!,
+      author: fields[10]!,
+      publisher: fields[11]!,
+      startdate: fields[12]!,
+      censusdate: fields[13]!,
+      enddate: fields[14]!,
+      coursetitle: fields[15]!,
+      coursecode: fields[16]!,
+      enrollmentstatus: fields[17]!,
+      optout: fields[18]!,
+      contenttype: fields[19]!,
     };
 
     rows.push(row);
@@ -163,13 +163,13 @@ export async function validateCSVFile(
   }
 
   const lines = joinMultilineFields(rawLines);
-  const headers = parseCSVLine(lines[0]);
+  const headers = parseCSVLine(lines[0]!);
   const missingHeaders = requiredHeaders.filter((h) => !headers.includes(h));
   const dataLines = lines.slice(1);
   const rowErrors: CSVValidationError[] = [];
 
   for (let i = 0; i < dataLines.length; i++) {
-    const fields = parseCSVLine(dataLines[i]);
+    const fields = parseCSVLine(dataLines[i]!);
     if (fields.length !== headers.length) {
       rowErrors.push({
         row: i + 2, // 1-indexed, +1 for header row
@@ -177,7 +177,7 @@ export async function validateCSVFile(
       });
     }
     for (let f = 0; f < fields.length; f++) {
-      if (fields[f].includes("\r")) {
+      if (fields[f]!.includes("\r")) {
         rowErrors.push({
           row: i + 2,
           message: `Field "${headers[f] ?? f}" contains embedded carriage return (CRLF)`,
@@ -208,7 +208,7 @@ export async function parseCSVRecords(
 
   const lines = joinMultilineFields(rawLines);
 
-  const headers = parseCSVLine(lines[0]);
+  const headers = parseCSVLine(lines[0]!);
   const dataLines = lines.slice(1);
   const records: Record<string, string>[] = [];
 
@@ -224,7 +224,7 @@ export async function parseCSVRecords(
 
     const record: Record<string, string> = {};
     for (let i = 0; i < headers.length; i++) {
-      record[headers[i]] = fields[i];
+      record[headers[i]!] = fields[i]!;
     }
 
     records.push(record);

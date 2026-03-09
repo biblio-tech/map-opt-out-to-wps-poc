@@ -4,18 +4,8 @@ import {
   parseOptOut,
   parseCourseAndSectionCode,
   mapCSVToDTO,
-  UnmappedTermCodeError,
 } from "./mapper";
 import type { CSVRow } from "../types";
-import type { TermCodeMapping } from "./term-mapping";
-
-const testTermMapping: TermCodeMapping = {
-  mappings: {
-    "Spring 2026": "2026SP",
-    "Summer 2026": "2026SU",
-    "Fall 2026": "2026FA",
-  },
-};
 
 describe("mapContentType", () => {
   test('maps "eBook" to "DIGITAL"', () => {
@@ -143,8 +133,8 @@ describe("mapCSVToDTO", () => {
     contenttype: "eBook",
   };
 
-  test("maps full row with eBook content type and term mapping", () => {
-    const result = mapCSVToDTO(baseRow, testTermMapping);
+  test("maps full row with eBook content type and provided term code", () => {
+    const result = mapCSVToDTO(baseRow, "2026SP");
 
     expect(result.termCode).toBe("2026SP");
     expect(result.crn).toBe("241018");
@@ -165,30 +155,19 @@ describe("mapCSVToDTO", () => {
 
   test("maps row with Courseware content type", () => {
     const row: CSVRow = { ...baseRow, contenttype: "Courseware" };
-    const result = mapCSVToDTO(row, testTermMapping);
+    const result = mapCSVToDTO(row, "2026SP");
     expect(result.contentType).toBe("COURSEWARE");
   });
 
   test("maps row with opt-in (not opted out)", () => {
     const row: CSVRow = { ...baseRow, optout: "false" };
-    const result = mapCSVToDTO(row, testTermMapping);
+    const result = mapCSVToDTO(row, "2026SP");
     expect(result.optOut).toBe(false);
   });
 
-  test("throws UnmappedTermCodeError for unknown term", () => {
+  test("uses the provided termCode regardless of CSV term field", () => {
     const row: CSVRow = { ...baseRow, term: "Winter 2099" };
-    expect(() => mapCSVToDTO(row, testTermMapping)).toThrow(
-      UnmappedTermCodeError
-    );
-  });
-
-  test("UnmappedTermCodeError contains the unmapped term", () => {
-    const row: CSVRow = { ...baseRow, term: "Winter 2099" };
-    try {
-      mapCSVToDTO(row, testTermMapping);
-    } catch (error) {
-      expect(error).toBeInstanceOf(UnmappedTermCodeError);
-      expect((error as UnmappedTermCodeError).csvTerm).toBe("Winter 2099");
-    }
+    const result = mapCSVToDTO(row, "RESOLVED_TERM");
+    expect(result.termCode).toBe("RESOLVED_TERM");
   });
 });

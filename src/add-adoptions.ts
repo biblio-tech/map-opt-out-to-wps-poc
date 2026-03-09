@@ -81,7 +81,7 @@ async function main() {
       continue;
     }
 
-    const adoption = result.adoption;
+    const adoption = result.adoption!;
     const key = adoptionKey(
       adoption.termCode!,
       adoption.deptCode,
@@ -109,7 +109,7 @@ async function main() {
   const erroredAdoptions: { adoption: Adoption; error: string }[] = [];
 
   for (let i = 0; i < adoptions.length; i++) {
-    const adoption = adoptions[i];
+    const adoption = adoptions[i]!;
     const term = adoption.termCode!;
     const progress = `(${i + 1} of ${adoptions.length})`;
 
@@ -169,7 +169,7 @@ async function main() {
   }
 
   if (skippedRecords.length > 0) {
-    const headers = Object.keys(skippedRecords[0].record);
+    const headers = Object.keys(skippedRecords[0]!.record);
     console.log(`\n=== Skipped Records (${skippedRecords.length}) ===`);
     console.log(["Reason", ...headers].join(","));
     for (const { reason, record } of skippedRecords) {

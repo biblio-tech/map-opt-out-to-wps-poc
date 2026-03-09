@@ -1,11 +1,11 @@
 import { loadConfig } from "./config";
 import { setupLogger, getAppLogger } from "./lib/logger";
 import { parseCSV } from "./lib/csv-parser";
-import { mapCSVToDTO, UnmappedTermCodeError } from "./lib/mapper";
-import { loadTermCodeMappingAsync } from "./lib/term-mapping";
+import { mapCSVToDTO, parseCourseAndSectionCode } from "./lib/mapper";
+import { loadTermCodeMappingAsync, mapTermCode } from "./lib/term-mapping";
 import { getToken } from "./lib/auth";
 import { postOptOut } from "./lib/api";
-import { AdoptionCache, checkAdoptionExists } from "./lib/adoption";
+import { AdoptionCache, CRNTermCache, checkAdoptionExists, resolveTermCodeByCRN } from "./lib/adoption";
 import { EnrollmentCache, checkEnrollment } from "./lib/enrollment";
 
 async function main() {
@@ -24,7 +24,8 @@ async function main() {
   logger.info`Using API: ${config.apiBaseUrl}`;
 
   const termMapping = await loadTermCodeMappingAsync();
-  logger.info`Loaded term code mapping with ${Object.keys(termMapping.mappings).length} entries`;
+  const candidateTerms = [...new Set(Object.values(termMapping.mappings))];
+  logger.info`Candidate terms for CRN resolution: ${candidateTerms.join(", ")}`;
 
   await getToken(config);
 
@@ -33,44 +34,58 @@ async function main() {
 
   const adoptionCache = new AdoptionCache();
   const enrollmentCache = new EnrollmentCache();
+  const crnTermCache = new CRNTermCache();
 
   let successCount = 0;
   let errorCount = 0;
   let skippedCount = 0;
   let missingAdoptionCount = 0;
+  let termMismatchCount = 0;
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]!;
 
-    let dto;
-    try {
-      dto = mapCSVToDTO(row, termMapping);
-    } catch (error) {
-      if (error instanceof UnmappedTermCodeError) {
-        logger.error`Record ${i + 1} skipped: ${error.message}`;
-        skippedCount++;
-        continue;
-      }
-      throw error;
+    const { departmentCode } = parseCourseAndSectionCode(row.courseandsectioncode);
+
+    const resolvedTermCode = await resolveTermCodeByCRN(
+      config,
+      row.crn,
+      departmentCode,
+      candidateTerms,
+      crnTermCache
+    );
+
+    if (!resolvedTermCode) {
+      logger.error`Record ${i + 1} skipped: no adoption found for CRN ${row.crn} in any term`;
+      skippedCount++;
+      missingAdoptionCount++;
+      continue;
     }
 
-    const termCode = dto.termCode!;
+    // Warn if the resolved term differs from what the CSV term would have mapped to
+    const csvMappedTerm = mapTermCode(row.term, termMapping);
+    if (csvMappedTerm && csvMappedTerm !== resolvedTermCode) {
+      logger.warn`Record ${i + 1}: CSV term "${row.term}" maps to ${csvMappedTerm}, but CRN ${row.crn} resolved to ${resolvedTermCode}`;
+      termMismatchCount++;
+    }
+
+    const dto = mapCSVToDTO(row, resolvedTermCode);
 
     const adoptionExists = await checkAdoptionExists(config, dto, adoptionCache);
     if (!adoptionExists) {
       missingAdoptionCount++;
     }
 
-    await checkEnrollment(config, termCode, dto.studentId!, {
+    await checkEnrollment(config, resolvedTermCode, dto.studentId!, {
       deptCode: dto.departmentCode!,
       courseCode: dto.courseCode!,
       section: dto.sectionCode!,
     }, enrollmentCache);
 
-    logger.info`Processing record ${i + 1}/${rows.length}: ${row.studentid} - ${row.ISBN}`;
+    logger.info`Processing record ${i + 1}/${rows.length}: ${row.studentid} - ${row.ISBN} (term: ${resolvedTermCode})`;
 
     try {
-      const response = await postOptOut(config, termCode, dto);
+      const response = await postOptOut(config, resolvedTermCode, dto);
 
       if (response.status === 200) {
         logger.info`Record ${i + 1} processed successfully`;
@@ -87,14 +102,15 @@ async function main() {
     }
   }
 
-  logger.info`Upload complete. Success: ${successCount}, Errors: ${errorCount}, Skipped: ${skippedCount}, Missing adoptions: ${missingAdoptionCount}, Total: ${rows.length}`;
+  logger.info`Upload complete. Success: ${successCount}, Errors: ${errorCount}, Skipped: ${skippedCount}, Missing adoptions: ${missingAdoptionCount}, Term mismatches: ${termMismatchCount}, Total: ${rows.length}`;
 
   console.log("\n=== Summary ===");
   console.log(`Total records: ${rows.length}`);
   console.log(`Successful: ${successCount}`);
   console.log(`Failed: ${errorCount}`);
-  console.log(`Skipped (unmapped term): ${skippedCount}`);
+  console.log(`Skipped (unresolved CRN): ${skippedCount}`);
   console.log(`Records with missing adoption: ${missingAdoptionCount}`);
+  console.log(`Term mismatches (CSV vs resolved): ${termMismatchCount}`);
 
   const missingAdoptions = adoptionCache.missingKeys;
   if (missingAdoptions.length > 0) {
@@ -102,6 +118,14 @@ async function main() {
     console.log("term|dept|course|section|ISBN");
     for (const key of missingAdoptions) {
       console.log(key.replace(/\|/g, " | "));
+    }
+  }
+
+  const unresolvedCRNs = crnTermCache.unresolvedCRNs;
+  if (unresolvedCRNs.length > 0) {
+    console.log(`\n=== Unresolved CRNs (${unresolvedCRNs.length}) ===`);
+    for (const crn of unresolvedCRNs) {
+      console.log(crn);
     }
   }
 }

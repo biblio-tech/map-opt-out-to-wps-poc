@@ -42,6 +42,72 @@ export class AdoptionCache {
   }
 }
 
+export class CRNTermCache {
+  private resolved = new Map<string, string>();
+  private unresolved = new Set<string>();
+
+  get(crn: string): string | undefined {
+    return this.resolved.get(crn);
+  }
+
+  isUnresolved(crn: string): boolean {
+    return this.unresolved.has(crn);
+  }
+
+  set(crn: string, termCode: string): void {
+    this.resolved.set(crn, termCode);
+  }
+
+  addUnresolved(crn: string): void {
+    this.unresolved.add(crn);
+  }
+
+  get unresolvedCRNs(): string[] {
+    return [...this.unresolved];
+  }
+
+  get size(): number {
+    return this.resolved.size;
+  }
+}
+
+export async function resolveTermCodeByCRN(
+  config: Config,
+  crn: string,
+  dept: string,
+  candidateTerms: string[],
+  cache: CRNTermCache
+): Promise<string | null> {
+  const logger = getAppLogger();
+
+  const cached = cache.get(crn);
+  if (cached) {
+    return cached;
+  }
+
+  if (cache.isUnresolved(crn)) {
+    return null;
+  }
+
+  for (const term of candidateTerms) {
+    const result = await getAdoptionFiltered(config, term, { dept, crn });
+
+    if (result.status === 200 && result.data) {
+      const adoptions = (result.data as { adoptions?: Adoption[] }).adoptions;
+      if (adoptions && adoptions.length > 0) {
+        const resolvedTerm = adoptions[0]!.termCode ?? term;
+        cache.set(crn, resolvedTerm);
+        logger.info`Resolved CRN ${crn} to term ${resolvedTerm}`;
+        return resolvedTerm;
+      }
+    }
+  }
+
+  logger.error`Could not resolve term for CRN ${crn} (dept ${dept}) in any candidate term`;
+  cache.addUnresolved(crn);
+  return null;
+}
+
 export async function checkAdoptionExists(
   config: Config,
   dto: OptInOptOutDTO,

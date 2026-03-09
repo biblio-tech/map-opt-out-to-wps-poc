@@ -55,8 +55,8 @@ export function mapCourseChargeToAdoption(
       courseCode,
       section: sectionCode,
       costToStudent: parseCostToStudent(record["BibliU Pricing"] ?? "0"),
-      itemScanCode: record["Req. ISBN"],
-      itemName: record["Title"],
+      itemScanCode: record["Req. ISBN"] ?? "",
+      itemName: record["Title"] ?? "",
     },
   };
 }
