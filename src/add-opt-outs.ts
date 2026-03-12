@@ -1,11 +1,12 @@
 import { loadConfig } from "./config";
 import { setupLogger, getAppLogger } from "./lib/logger";
+import type { CSVRow } from "./types";
 import { parseCSV } from "./lib/csv-parser";
 import { mapCSVToDTO, parseCourseAndSectionCode } from "./lib/mapper";
 import { loadTermCodeMappingAsync, mapTermCode } from "./lib/term-mapping";
 import { getToken } from "./lib/auth";
 import { postOptOut } from "./lib/api";
-import { AdoptionCache, CRNTermCache, checkAdoptionExists, resolveTermCodeByCRN } from "./lib/adoption";
+import { AdoptionResolveCache, resolveAdoption } from "./lib/adoption";
 import { loadCourseEnrollment, isEnrolled, suggestCRN } from "./lib/course-enrollment";
 
 async function main() {
@@ -41,35 +42,43 @@ async function main() {
   const enrollment = await loadCourseEnrollment();
   logger.info`Loaded ${enrollment.totalRecords} enrollment records`;
 
-  const adoptionCache = new AdoptionCache();
-  const crnTermCache = new CRNTermCache();
+  const adoptionCache = new AdoptionResolveCache();
 
   let successCount = 0;
   let errorCount = 0;
   let skippedCount = 0;
-  let missingAdoptionCount = 0;
   let termMismatchCount = 0;
   let enrollmentMismatchCount = 0;
 
+  const unresolvedAdoptionRows: CSVRow[] = [];
+
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]!;
+    logger.info`Processing record ${i + 1}/${rows.length}: ${csvRowToLine(row)}`;
 
-    const { departmentCode } = parseCourseAndSectionCode(row.courseandsectioncode);
+    const { departmentCode, courseCode, sectionCode } = parseCourseAndSectionCode(row.courseandsectioncode);
 
-    const resolvedTermCode = await resolveTermCodeByCRN(
+    const adoption = await resolveAdoption(
       config,
-      row.crn,
-      departmentCode,
+      {
+        crn: row.crn,
+        dept: departmentCode,
+        course: courseCode,
+        section: sectionCode,
+        itemScanCode: row.ISBN,
+      },
       candidateTerms,
-      crnTermCache
+      adoptionCache
     );
 
-    if (!resolvedTermCode) {
-      logger.error`Record ${i + 1} skipped: no adoption found for CRN ${row.crn} in any term`;
+    if (!adoption) {
+      logger.error`Record ${i + 1} skipped: no matching adoption for CRN ${row.crn} ISBN ${row.ISBN} (${row.courseandsectioncode})`;
       skippedCount++;
-      missingAdoptionCount++;
+      unresolvedAdoptionRows.push(row);
       continue;
     }
+
+    const resolvedTermCode = adoption.termCode!;
 
     // Warn if the resolved term differs from what the CSV term would have mapped to
     const csvMappedTerm = mapTermCode(row.term, termMapping);
@@ -80,11 +89,6 @@ async function main() {
 
     const dto = mapCSVToDTO(row, resolvedTermCode);
 
-    const adoptionExists = await checkAdoptionExists(config, dto, adoptionCache);
-    if (!adoptionExists) {
-      missingAdoptionCount++;
-    }
-
     if (!isEnrolled(enrollment, row.studentid, row.crn)) {
       enrollmentMismatchCount++;
       const altCrn = suggestCRN(enrollment, row.studentid, row.courseandsectioncode);
@@ -94,8 +98,6 @@ async function main() {
         logger.error`Record ${i + 1}: student ${row.studentid} not enrolled for CRN ${row.crn} (${row.courseandsectioncode}), no matching enrollment found`;
       }
     }
-
-    logger.info`Processing record ${i + 1}/${rows.length}: ${row.studentid} - ${row.ISBN} (term: ${resolvedTermCode})`;
 
     if (dryRun) {
       const url = `${config.apiBaseUrl}/cart/v1/admin/opt_out/${encodeURIComponent(resolvedTermCode)}`;
@@ -122,33 +124,50 @@ async function main() {
     }
   }
 
-  logger.info`Upload complete. Success: ${successCount}, Errors: ${errorCount}, Skipped: ${skippedCount}, Missing adoptions: ${missingAdoptionCount}, Term mismatches: ${termMismatchCount}, Enrollment mismatches: ${enrollmentMismatchCount}, Total: ${rows.length}`;
+  logger.info`Upload complete. Success: ${successCount}, Errors: ${errorCount}, Skipped (unresolved adoption): ${skippedCount}, Term mismatches: ${termMismatchCount}, Enrollment mismatches: ${enrollmentMismatchCount}, Total: ${rows.length}`;
 
   console.log("\n=== Summary ===");
   console.log(`Total records: ${rows.length}`);
   console.log(`Successful: ${successCount}`);
   console.log(`Failed: ${errorCount}`);
-  console.log(`Skipped (unresolved CRN): ${skippedCount}`);
-  console.log(`Records with missing adoption: ${missingAdoptionCount}`);
+  console.log(`Skipped (unresolved adoption): ${skippedCount}`);
   console.log(`Term mismatches (CSV vs resolved): ${termMismatchCount}`);
   console.log(`Enrollment mismatches: ${enrollmentMismatchCount}`);
 
-  const missingAdoptions = adoptionCache.missingKeys;
-  if (missingAdoptions.length > 0) {
-    console.log(`\n=== Missing Adoptions (${missingAdoptions.length}) ===`);
-    console.log("term|dept|course|section|ISBN");
-    for (const key of missingAdoptions) {
+  const unresolvedAdoptions = adoptionCache.unresolvedAdoptions;
+  if (unresolvedAdoptions.length > 0) {
+    console.log(`\n=== Unresolved Adoptions (${unresolvedAdoptions.length}) ===`);
+    console.log("crn|dept|course|section|ISBN");
+    for (const key of unresolvedAdoptions) {
       console.log(key.replace(/\|/g, " | "));
     }
   }
 
-  const unresolvedCRNs = crnTermCache.unresolvedCRNs;
-  if (unresolvedCRNs.length > 0) {
-    console.log(`\n=== Unresolved CRNs (${unresolvedCRNs.length}) ===`);
-    for (const crn of unresolvedCRNs) {
-      console.log(crn);
+  if (unresolvedAdoptionRows.length > 0) {
+    console.log(`\n=== Rows with Unresolved Adoptions (${unresolvedAdoptionRows.length}) ===`);
+    console.log(CSV_HEADER);
+    for (const row of unresolvedAdoptionRows) {
+      console.log(csvRowToLine(row));
     }
   }
+}
+
+const CSV_HEADER = "Date Sent,term,crn,courseandsectioncode,studentid,firstname,lastname,email,ISBN,title,author,publisher,startdate,censusdate,enddate,coursetitle,coursecode,enrollmentstatus,optout,contenttype";
+
+function csvEscape(value: string): string {
+  if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+    return `"${value.replace(/"/g, '""')}"`;
+  }
+  return value;
+}
+
+function csvRowToLine(row: CSVRow): string {
+  return [
+    row.dateSent, row.term, row.crn, row.courseandsectioncode, row.studentid,
+    row.firstname, row.lastname, row.email, row.ISBN, row.title, row.author,
+    row.publisher, row.startdate, row.censusdate, row.enddate, row.coursetitle,
+    row.coursecode, row.enrollmentstatus, row.optout, row.contenttype,
+  ].map(csvEscape).join(",");
 }
 
 main().catch((error) => {

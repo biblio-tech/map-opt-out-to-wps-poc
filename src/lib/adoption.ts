@@ -1,5 +1,5 @@
 import type { Config } from "../config";
-import type { Adoption, OptInOptOutDTO } from "../types";
+import type { Adoption } from "../types";
 import { getAdoptionFiltered } from "./api";
 import { getAppLogger } from "./logger";
 
@@ -13,56 +13,39 @@ export function adoptionKey(
   return `${termCode}|${deptCode}|${courseCode}|${section}|${itemScanCode}`;
 }
 
-export class AdoptionCache {
-  private confirmed = new Set<string>();
-  private missing = new Set<string>();
-
-  has(key: string): boolean {
-    return this.confirmed.has(key);
-  }
-
-  isMissing(key: string): boolean {
-    return this.missing.has(key);
-  }
-
-  add(key: string): void {
-    this.confirmed.add(key);
-  }
-
-  addMissing(key: string): void {
-    this.missing.add(key);
-  }
-
-  get missingKeys(): string[] {
-    return [...this.missing];
-  }
-
-  get size(): number {
-    return this.confirmed.size;
-  }
+export interface ResolveAdoptionParams {
+  crn: string;
+  dept: string;
+  course: string;
+  section: string;
+  itemScanCode: string;
 }
 
-export class CRNTermCache {
-  private resolved = new Map<string, string>();
+export class AdoptionResolveCache {
+  private resolved = new Map<string, Adoption>();
   private unresolved = new Set<string>();
 
-  get(crn: string): string | undefined {
-    return this.resolved.get(crn);
+  private key(params: ResolveAdoptionParams): string {
+    return `${params.crn}|${params.dept}|${params.course}|${params.section}|${params.itemScanCode}`;
   }
 
-  isUnresolved(crn: string): boolean {
-    return this.unresolved.has(crn);
+  get(params: ResolveAdoptionParams): Adoption | undefined {
+    return this.resolved.get(this.key(params));
   }
 
-  set(crn: string, termCode: string): void {
-    this.resolved.set(crn, termCode);
+  isUnresolved(params: ResolveAdoptionParams): boolean {
+    return this.unresolved.has(this.key(params));
   }
 
-  addUnresolved(crn: string): void {
-    this.unresolved.add(crn);
+  set(params: ResolveAdoptionParams, adoption: Adoption): void {
+    this.resolved.set(this.key(params), adoption);
   }
 
-  get unresolvedCRNs(): string[] {
+  addUnresolved(params: ResolveAdoptionParams): void {
+    this.unresolved.add(this.key(params));
+  }
+
+  get unresolvedAdoptions(): string[] {
     return [...this.unresolved];
   }
 
@@ -71,93 +54,47 @@ export class CRNTermCache {
   }
 }
 
-export async function resolveTermCodeByCRN(
+export async function resolveAdoption(
   config: Config,
-  crn: string,
-  dept: string,
+  params: ResolveAdoptionParams,
   candidateTerms: string[],
-  cache: CRNTermCache
-): Promise<string | null> {
+  cache: AdoptionResolveCache
+): Promise<Adoption | null> {
   const logger = getAppLogger();
 
-  const cached = cache.get(crn);
+  const cached = cache.get(params);
   if (cached) {
     return cached;
   }
 
-  if (cache.isUnresolved(crn)) {
+  if (cache.isUnresolved(params)) {
     return null;
   }
 
   for (const term of candidateTerms) {
-    const result = await getAdoptionFiltered(config, term, { dept, crn });
+    const result = await getAdoptionFiltered(config, term, {
+      dept: params.dept,
+      course: params.course,
+      section: params.section,
+      crn: params.crn,
+      itemScanCode: params.itemScanCode,
+    });
 
     if (result.status === 200 && result.data) {
       const adoptions = (result.data as { adoptions?: Adoption[] }).adoptions;
       if (adoptions && adoptions.length > 0) {
-        const resolvedTerm = adoptions[0]!.termCode ?? term;
-        cache.set(crn, resolvedTerm);
-        logger.info`Resolved CRN ${crn} to term ${resolvedTerm}`;
-        return resolvedTerm;
+        const adoption = adoptions[0]!;
+        if (!adoption.termCode) {
+          adoption.termCode = term;
+        }
+        cache.set(params, adoption);
+        logger.info`Resolved adoption for CRN ${params.crn} ISBN ${params.itemScanCode} in term ${adoption.termCode}`;
+        return adoption;
       }
     }
   }
 
-  logger.error`Could not resolve term for CRN ${crn} (dept ${dept}) in any candidate term`;
-  cache.addUnresolved(crn);
+  logger.error`Could not resolve adoption for CRN ${params.crn} (dept ${params.dept}, course ${params.course}, section ${params.section}, ISBN ${params.itemScanCode}) in any candidate term`;
+  cache.addUnresolved(params);
   return null;
-}
-
-export async function checkAdoptionExists(
-  config: Config,
-  dto: OptInOptOutDTO,
-  cache: AdoptionCache
-): Promise<boolean> {
-  const logger = getAppLogger();
-  const termCode = dto.termCode!;
-  const deptCode = dto.departmentCode!;
-  const courseCode = dto.courseCode!;
-  const section = dto.sectionCode!;
-  const itemScanCode = dto.itemScanCode!;
-
-  const key = adoptionKey(termCode, deptCode, courseCode, section, itemScanCode);
-
-  if (cache.has(key)) {
-    return true;
-  }
-
-  if (cache.isMissing(key)) {
-    return false;
-  }
-
-  const getResult = await getAdoptionFiltered(config, termCode, {
-    dept: deptCode,
-    course: courseCode,
-    section,
-    itemScanCode,
-  });
-
-  if (getResult.status === 200 && getResult.data) {
-    const adoptions = getResult.data as { adoptions?: Adoption[] };
-    if (adoptions.adoptions && adoptions.adoptions.length > 0) {
-      for (const a of adoptions.adoptions) {
-        cache.add(
-          adoptionKey(
-            termCode,
-            a.deptCode,
-            a.courseCode,
-            a.section,
-            a.itemScanCode
-          )
-        );
-      }
-      if (cache.has(key)) {
-        return true;
-      }
-    }
-  }
-
-  logger.error`Missing adoption: ${deptCode}-${courseCode}-${section} ISBN ${itemScanCode} in term ${termCode}`;
-  cache.addMissing(key);
-  return false;
 }
