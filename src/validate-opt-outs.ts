@@ -37,15 +37,14 @@ async function main() {
   if (unmatched.length > 0) {
     console.log(`\nUnmatched opt-outs:`);
     console.log(
-      `${"Student ID".padEnd(12)} ${"CRN".padEnd(10)} ${"Name".padEnd(30)} ${"Course & Section".padEnd(18)} Suggested CRN`
+      `${"Student ID".padEnd(12)} ${"CRN".padEnd(10)} ${"Course & Section".padEnd(18)} Suggested CRN`
     );
-    console.log("-".repeat(95));
+    console.log("-".repeat(65));
     for (const row of unmatched) {
-      const name = `${row.firstname} ${row.lastname}`;
       const altCrn = suggestCRN(enrollment, row.studentid, row.courseandsectioncode);
       const suggestion = altCrn ? altCrn : "-";
       console.log(
-        `${row.studentid.padEnd(12)} ${row.crn.padEnd(10)} ${name.padEnd(30)} ${row.courseandsectioncode.padEnd(18)} ${suggestion}`
+        `${row.studentid.padEnd(12)} ${row.crn.padEnd(10)} ${row.courseandsectioncode.padEnd(18)} ${suggestion}`
       );
     }
   }

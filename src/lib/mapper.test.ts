@@ -116,9 +116,6 @@ describe("mapCSVToDTO", () => {
     crn: "241018",
     courseandsectioncode: "SW-685-MOL2",
     studentid: "3575856",
-    firstname: "Silvana",
-    lastname: "Armentano",
-    email: "silvana@example.com",
     ISBN: "9780190916510",
     title: "Program Evaluation",
     author: "Unrau, Y.A.",
@@ -142,9 +139,6 @@ describe("mapCSVToDTO", () => {
     expect(result.courseCode).toBe("685");
     expect(result.sectionCode).toBe("MOL2");
     expect(result.studentId).toBe("3575856");
-    expect(result.firsName).toBe("Silvana");
-    expect(result.lastName).toBe("Armentano");
-    expect(result.email).toBe("silvana@example.com");
     expect(result.itemScanCode).toBe("9780190916510");
     expect(result.title).toBe("Program Evaluation");
     expect(result.author).toBe("Unrau, Y.A.");

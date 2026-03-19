@@ -4,9 +4,6 @@ export interface CSVRow {
   crn: string;
   courseandsectioncode: string;
   studentid: string;
-  firstname: string;
-  lastname: string;
-  email: string;
   ISBN: string;
   title: string;
   author: string;

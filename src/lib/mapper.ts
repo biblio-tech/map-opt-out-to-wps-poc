@@ -60,9 +60,6 @@ export function mapCSVToDTO(
     courseCode,
     sectionCode,
     studentId: row.studentid,
-    firsName: row.firstname, // Note: API typo - "firsName" not "firstName"
-    lastName: row.lastname,
-    email: row.email,
     itemScanCode: row.ISBN,
     title: row.title,
     author: row.author,

@@ -7,7 +7,7 @@ import { loadTermCodeMappingAsync, mapTermCode } from "./lib/term-mapping";
 import { getToken } from "./lib/auth";
 import { postOptOut } from "./lib/api";
 import { AdoptionResolveCache, resolveAdoption } from "./lib/adoption";
-import { loadCourseEnrollment, isEnrolled, suggestCRN } from "./lib/course-enrollment";
+import { loadCourseEnrollment, isEnrolled, suggestCRN, getStudentDetails } from "./lib/course-enrollment";
 
 async function main() {
   await setupLogger();
@@ -89,6 +89,14 @@ async function main() {
 
     const dto = mapCSVToDTO(row, resolvedTermCode);
 
+    // csv doesn't contain PII so need this from the enrollment file
+    const student = getStudentDetails(enrollment, row.studentid);
+    if (student) {
+      dto.firsName = student.firstName;
+      dto.lastName = student.lastName;
+      dto.email = student.email;
+    }
+
     if (!isEnrolled(enrollment, row.studentid, row.crn)) {
       enrollmentMismatchCount++;
       const altCrn = suggestCRN(enrollment, row.studentid, row.courseandsectioncode);
@@ -152,7 +160,7 @@ async function main() {
   }
 }
 
-const CSV_HEADER = "Date Sent,term,crn,courseandsectioncode,studentid,firstname,lastname,email,ISBN,title,author,publisher,startdate,censusdate,enddate,coursetitle,coursecode,enrollmentstatus,optout,contenttype";
+const CSV_HEADER = "Date Sent,term,crn,courseandsectioncode,studentid,ISBN,title,author,publisher,startdate,censusdate,enddate,coursetitle,coursecode,enrollmentstatus,optout,contenttype";
 
 function csvEscape(value: string): string {
   if (value.includes(",") || value.includes('"') || value.includes("\n")) {
@@ -164,7 +172,7 @@ function csvEscape(value: string): string {
 function csvRowToLine(row: CSVRow): string {
   return [
     row.dateSent, row.term, row.crn, row.courseandsectioncode, row.studentid,
-    row.firstname, row.lastname, row.email, row.ISBN, row.title, row.author,
+    row.ISBN, row.title, row.author,
     row.publisher, row.startdate, row.censusdate, row.enddate, row.coursetitle,
     row.coursecode, row.enrollmentstatus, row.optout, row.contenttype,
   ].map(csvEscape).join(",");
