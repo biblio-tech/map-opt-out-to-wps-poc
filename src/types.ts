@@ -45,6 +45,41 @@ export interface ApiResponse<T = unknown> {
   error?: string;
 }
 
+export interface Enrollment {
+  termCode?: string;
+  deptCode?: string;
+  courseCode?: string;
+  section?: string;
+  crn?: string;
+  customer?: string;
+  faLoad?: string;
+  academicCareer?: string;
+  startOn?: string;
+  endOn?: string;
+  censusDate?: string;
+  createdAt?: number;
+}
+
+export interface EnrollmentWrapper {
+  enrollments: Enrollment[];
+}
+
+export interface StudentInfoDTO {
+  firstName?: string;
+  lastName: string;
+  email?: string;
+  address?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postal?: string;
+  phone?: string;
+  id?: string;
+  posId?: string;
+  studentId?: string;
+}
+
 export interface Adoption {
   termCode?: string;
   crn?: string;

@@ -1,67 +1,71 @@
-import { parseCSVRecords } from "./csv-parser";
+import type { Config } from "../config";
+import type { Enrollment } from "../types";
+import { getEnrollments } from "./api";
+import { getAppLogger } from "./logger";
 
-const ENROLLMENT_PATH = "data/CourseEnrollment.csv";
-
-export interface StudentDetails {
-  firstName: string;
-  lastName: string;
-  email: string;
+function isNotFoundError(error: string): boolean {
+  return /no (student|enrollment) information found/i.test(error);
 }
 
-export interface CourseEnrollmentLookup {
-  /** Set of "studentId|crn" keys */
-  byStudentAndCRN: Set<string>;
-  /** Map of "studentId|courseAndSection" → CRN */
-  byCourseAndStudent: Map<string, string>;
-  /** Map of studentId → student contact details */
-  studentDetails: Map<string, StudentDetails>;
-  totalRecords: number;
+interface StudentEnrollmentEntry {
+  crns: Set<string>;
 }
 
-export async function loadCourseEnrollment(): Promise<CourseEnrollmentLookup> {
-  const records = await parseCSVRecords(ENROLLMENT_PATH);
+export class EnrollmentLookup {
+  private cache = new Map<string, StudentEnrollmentEntry>();
 
-  const byStudentAndCRN = new Set<string>();
-  const byCourseAndStudent = new Map<string, string>();
-  const studentDetails = new Map<string, StudentDetails>();
-
-  for (const r of records) {
-    byStudentAndCRN.add(`${r["StudentId"]}|${r["CRN"]}`);
-    byCourseAndStudent.set(
-      `${r["StudentId"]}|${r["CourseAndSectionCode"]}`,
-      r["CRN"]!
-    );
-    if (!studentDetails.has(r["StudentId"]!)) {
-      studentDetails.set(r["StudentId"]!, {
-        firstName: r["FirstName"] ?? "",
-        lastName: r["LastName"] ?? "",
-        email: r["EmailAddress"] ?? "",
-      });
-    }
+  private key(termCode: string, studentId: string): string {
+    return `${termCode}|${studentId}`;
   }
 
-  return { byStudentAndCRN, byCourseAndStudent, studentDetails, totalRecords: records.length };
+  private async fetch(
+    config: Config,
+    termCode: string,
+    studentId: string
+  ): Promise<StudentEnrollmentEntry> {
+    const logger = getAppLogger();
+    const response = await getEnrollments(config, termCode, studentId);
+
+    const entry: StudentEnrollmentEntry = { crns: new Set() };
+
+    if (response.error) {
+      if (response.status === 404 || isNotFoundError(response.error)) {
+        return entry;
+      }
+      logger.warn`getEnrollments(${termCode}, ${studentId}) failed: ${response.status} - ${response.error}`;
+      return entry;
+    }
+
+    const enrollments: Enrollment[] = response.data?.enrollments ?? [];
+    for (const e of enrollments) {
+      if (e.crn) entry.crns.add(e.crn);
+    }
+
+    return entry;
+  }
+
+  async get(
+    config: Config,
+    termCode: string,
+    studentId: string
+  ): Promise<StudentEnrollmentEntry> {
+    const k = this.key(termCode, studentId);
+    const cached = this.cache.get(k);
+    if (cached) return cached;
+    const entry = await this.fetch(config, termCode, studentId);
+    this.cache.set(k, entry);
+    return entry;
+  }
 }
 
-export function isEnrolled(
-  lookup: CourseEnrollmentLookup,
+export async function isEnrolled(
+  lookup: EnrollmentLookup,
+  config: Config,
+  termCode: string,
   studentId: string,
   crn: string
-): boolean {
-  return lookup.byStudentAndCRN.has(`${studentId}|${crn}`);
+): Promise<boolean> {
+  const entry = await lookup.get(config, termCode, studentId);
+  return entry.crns.has(crn);
 }
 
-export function getStudentDetails(
-  lookup: CourseEnrollmentLookup,
-  studentId: string
-): StudentDetails | undefined {
-  return lookup.studentDetails.get(studentId);
-}
-
-export function suggestCRN(
-  lookup: CourseEnrollmentLookup,
-  studentId: string,
-  courseAndSection: string
-): string | undefined {
-  return lookup.byCourseAndStudent.get(`${studentId}|${courseAndSection}`);
-}

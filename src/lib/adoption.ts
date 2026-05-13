@@ -58,7 +58,8 @@ export async function resolveAdoption(
   config: Config,
   params: ResolveAdoptionParams,
   candidateTerms: string[],
-  cache: AdoptionResolveCache
+  cache: AdoptionResolveCache,
+  preferredTerm?: string
 ): Promise<Adoption | null> {
   const logger = getAppLogger();
 
@@ -71,7 +72,11 @@ export async function resolveAdoption(
     return null;
   }
 
-  for (const term of candidateTerms) {
+  const ordered = preferredTerm
+    ? [preferredTerm, ...candidateTerms.filter((t) => t !== preferredTerm)]
+    : candidateTerms;
+
+  for (const term of ordered) {
     const result = await getAdoptionFiltered(config, term, {
       dept: params.dept,
       course: params.course,

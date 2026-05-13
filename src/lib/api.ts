@@ -1,5 +1,11 @@
 import type { Config } from "../config";
-import type { OptInOptOutDTO, Adoption, ApiResponse } from "../types";
+import type {
+  OptInOptOutDTO,
+  Adoption,
+  ApiResponse,
+  EnrollmentWrapper,
+  StudentInfoDTO,
+} from "../types";
 import { getCachedToken, refreshToken } from "./auth";
 import { getAppLogger } from "./logger";
 
@@ -315,7 +321,7 @@ export async function getCustomer(
   customerId: string,
   termCode: string,
   retryOnAuth = true
-): Promise<ApiResponse> {
+): Promise<ApiResponse<StudentInfoDTO>> {
   const logger = getAppLogger();
   const token = getCachedToken();
 
@@ -363,7 +369,7 @@ export async function getCustomer(
 
   return {
     status: response.status,
-    data,
+    data: data as StudentInfoDTO,
   };
 }
 
@@ -371,7 +377,7 @@ async function fetchEnrollmentsPage(
   config: Config,
   url: string,
   retryOnAuth = true
-): Promise<ApiResponse> {
+): Promise<ApiResponse<EnrollmentWrapper>> {
   const logger = getAppLogger();
   const token = getCachedToken();
 
@@ -417,7 +423,7 @@ async function fetchEnrollmentsPage(
 
   return {
     status: response.status,
-    data,
+    data: data as EnrollmentWrapper,
   };
 }
 
@@ -425,7 +431,7 @@ export async function getEnrollments(
   config: Config,
   termCode: string,
   studentId?: string
-): Promise<ApiResponse> {
+): Promise<ApiResponse<EnrollmentWrapper>> {
   const base = `${config.apiBaseUrl}/cart/v1/admin/enrollments/${encodeURIComponent(termCode)}`;
 
   if (studentId) {
@@ -434,7 +440,7 @@ export async function getEnrollments(
 
   const logger = getAppLogger();
   const pageSize = 2000;
-  const allEnrollments: unknown[] = [];
+  const allEnrollments: EnrollmentWrapper["enrollments"] = [];
 
   for (let page = 0; ; page++) {
     const response = await fetchEnrollmentsPage(
@@ -443,8 +449,7 @@ export async function getEnrollments(
     );
     if (response.error) return response;
 
-    const wrapper = response.data as { enrollments?: unknown[] } | undefined;
-    const enrollments = wrapper?.enrollments ?? [];
+    const enrollments = response.data?.enrollments ?? [];
     allEnrollments.push(...enrollments);
 
     logger.debug`Fetched page ${page}: ${enrollments.length} enrollments (running total: ${allEnrollments.length})`;

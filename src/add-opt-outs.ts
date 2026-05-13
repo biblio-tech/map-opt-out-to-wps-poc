@@ -7,7 +7,7 @@ import { loadTermCodeMappingAsync, mapTermCode } from "./lib/term-mapping";
 import { getToken } from "./lib/auth";
 import { postOptOut } from "./lib/api";
 import { AdoptionResolveCache, resolveAdoption } from "./lib/adoption";
-import { loadCourseEnrollment, isEnrolled, suggestCRN, getStudentDetails } from "./lib/course-enrollment";
+import { EnrollmentLookup, isEnrolled } from "./lib/course-enrollment";
 
 async function main() {
   await setupLogger();
@@ -42,9 +42,7 @@ async function main() {
   const rows = await parseCSV(csvPath);
   logger.info`Parsed ${rows.length} records from CSV`;
 
-  logger.info`Loading course enrollment data...`;
-  const enrollment = await loadCourseEnrollment();
-  logger.info`Loaded ${enrollment.totalRecords} enrollment records`;
+  const enrollmentLookup = new EnrollmentLookup();
 
   const adoptionCache = new AdoptionResolveCache();
 
@@ -55,12 +53,14 @@ async function main() {
   let enrollmentMismatchCount = 0;
 
   const unresolvedAdoptionRows: CSVRow[] = [];
+  const notEnrolledRows: { row: CSVRow; termCode: string }[] = [];
 
   for (let i = 0; i < rows.length; i++) {
     const row = rows[i]!;
     logger.info`Processing record ${i + 1}/${rows.length}: ${csvRowToLine(row)}`;
 
     const { departmentCode, courseCode, sectionCode } = parseCourseAndSectionCode(row.courseandsectioncode);
+    const csvMappedTerm = mapTermCode(row.term, termMapping);
 
     const adoption = await resolveAdoption(
       config,
@@ -72,7 +72,8 @@ async function main() {
         itemScanCode: row.ISBN,
       },
       candidateTerms,
-      adoptionCache
+      adoptionCache,
+      csvMappedTerm ?? undefined
     );
 
     if (!adoption) {
@@ -88,7 +89,6 @@ async function main() {
     }
 
     let resolvedTermCode: string;
-    const csvMappedTerm = mapTermCode(row.term, termMapping);
 
     if (adoption) {
       resolvedTermCode = adoption.termCode!;
@@ -110,22 +110,10 @@ async function main() {
 
     const dto = mapCSVToDTO(row, resolvedTermCode);
 
-    // csv doesn't contain PII so need this from the enrollment file
-    const student = getStudentDetails(enrollment, row.studentid);
-    if (student) {
-      dto.firsName = student.firstName;
-      dto.lastName = student.lastName;
-      dto.email = student.email;
-    }
-
-    if (!isEnrolled(enrollment, row.studentid, row.crn)) {
+    if (!(await isEnrolled(enrollmentLookup, config, resolvedTermCode, row.studentid, row.crn))) {
       enrollmentMismatchCount++;
-      const altCrn = suggestCRN(enrollment, row.studentid, row.courseandsectioncode);
-      if (altCrn) {
-        logger.error`Record ${i + 1}: student ${row.studentid} not enrolled for CRN ${row.crn} (${row.courseandsectioncode}), suggested CRN: ${altCrn}`;
-      } else {
-        logger.error`Record ${i + 1}: student ${row.studentid} not enrolled for CRN ${row.crn} (${row.courseandsectioncode}), no matching enrollment found`;
-      }
+      notEnrolledRows.push({ row, termCode: resolvedTermCode });
+      logger.error`Record ${i + 1}: student ${row.studentid} not enrolled for CRN ${row.crn} (${row.courseandsectioncode}) in term ${resolvedTermCode}`;
     }
 
     if (dryRun) {
@@ -177,6 +165,19 @@ async function main() {
     console.log(CSV_HEADER);
     for (const row of unresolvedAdoptionRows) {
       console.log(csvRowToLine(row));
+    }
+  }
+
+  if (notEnrolledRows.length > 0) {
+    console.log(`\n=== Students Not Enrolled (${notEnrolledRows.length}) ===`);
+    console.log(
+      `${"Student ID".padEnd(12)} ${"Term".padEnd(8)} ${"CRN".padEnd(8)} Course & Section`
+    );
+    console.log("-".repeat(55));
+    for (const { row, termCode } of notEnrolledRows) {
+      console.log(
+        `${row.studentid.padEnd(12)} ${termCode.padEnd(8)} ${row.crn.padEnd(8)} ${row.courseandsectioncode}`
+      );
     }
   }
 }

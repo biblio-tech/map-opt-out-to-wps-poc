@@ -1,6 +1,9 @@
+import { loadConfig } from "./config";
 import { setupLogger, getAppLogger } from "./lib/logger";
 import { parseCSV } from "./lib/csv-parser";
-import { loadCourseEnrollment, isEnrolled, suggestCRN } from "./lib/course-enrollment";
+import { getToken } from "./lib/auth";
+import { loadTermCodeMappingAsync, mapTermCode } from "./lib/term-mapping";
+import { EnrollmentLookup, isEnrolled } from "./lib/course-enrollment";
 
 async function main() {
   await setupLogger();
@@ -13,38 +16,46 @@ async function main() {
     process.exit(1);
   }
 
-  logger.info`Loading enrollment data...`;
-  const enrollment = await loadCourseEnrollment();
-  logger.info`Loaded ${enrollment.totalRecords} enrollment records (${enrollment.byStudentAndCRN.size} unique student/CRN pairs)`;
+  const config = loadConfig();
+  await getToken(config);
+
+  const termMapping = await loadTermCodeMappingAsync();
+  const enrollmentLookup = new EnrollmentLookup();
 
   logger.info`Loading opt-outs from ${optOutsPath}...`;
   const optOuts = await parseCSV(optOutsPath);
   logger.info`Loaded ${optOuts.length} opt-out records`;
 
-  const unmatched: typeof optOuts = [];
+  const unmatched: { row: (typeof optOuts)[number]; termCode: string }[] = [];
+  let unmappedTermCount = 0;
 
   for (const row of optOuts) {
-    if (!isEnrolled(enrollment, row.studentid, row.crn)) {
-      unmatched.push(row);
+    const termCode = mapTermCode(row.term, termMapping);
+    if (!termCode) {
+      unmappedTermCount++;
+      logger.error`No term mapping for "${row.term}" (student ${row.studentid}, CRN ${row.crn})`;
+      continue;
+    }
+    if (!(await isEnrolled(enrollmentLookup, config, termCode, row.studentid, row.crn))) {
+      unmatched.push({ row, termCode });
     }
   }
 
   console.log(`\nOpt-outs file: ${optOutsPath}`);
   console.log(`Total opt-outs: ${optOuts.length}`);
-  console.log(`Matched in enrollment: ${optOuts.length - unmatched.length}`);
+  console.log(`Matched in enrollment: ${optOuts.length - unmatched.length - unmappedTermCount}`);
   console.log(`Not in enrollment: ${unmatched.length}`);
+  console.log(`Unmapped term: ${unmappedTermCount}`);
 
   if (unmatched.length > 0) {
     console.log(`\nUnmatched opt-outs:`);
     console.log(
-      `${"Student ID".padEnd(12)} ${"CRN".padEnd(10)} ${"Course & Section".padEnd(18)} Suggested CRN`
+      `${"Student ID".padEnd(12)} ${"Term".padEnd(8)} ${"CRN".padEnd(10)} Course & Section`
     );
-    console.log("-".repeat(65));
-    for (const row of unmatched) {
-      const altCrn = suggestCRN(enrollment, row.studentid, row.courseandsectioncode);
-      const suggestion = altCrn ? altCrn : "-";
+    console.log("-".repeat(55));
+    for (const { row, termCode } of unmatched) {
       console.log(
-        `${row.studentid.padEnd(12)} ${row.crn.padEnd(10)} ${row.courseandsectioncode.padEnd(18)} ${suggestion}`
+        `${row.studentid.padEnd(12)} ${termCode.padEnd(8)} ${row.crn.padEnd(10)} ${row.courseandsectioncode}`
       );
     }
   }
