@@ -310,6 +310,154 @@ export async function postAdoption(
   };
 }
 
+export async function getCustomer(
+  config: Config,
+  customerId: string,
+  termCode: string,
+  retryOnAuth = true
+): Promise<ApiResponse> {
+  const logger = getAppLogger();
+  const token = getCachedToken();
+
+  if (!token) {
+    throw new Error("No auth token available. Call getToken first.");
+  }
+
+  const url = `${config.apiBaseUrl}/bursar_billing/v1/enrollment/student-info/${encodeURIComponent(customerId)}?termCode=${encodeURIComponent(termCode)}`;
+
+  logger.debug`GET ${url}`;
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      authorization: token,
+      "api-key": config.apiKey,
+    },
+  });
+
+  if (response.status === 401 && retryOnAuth) {
+    logger.info`Token expired, refreshing...`;
+    await refreshToken(config);
+    return getCustomer(config, customerId, termCode, false);
+  }
+
+  const responseText = await response.text();
+
+  logger.debug`Response status: ${response.status}`;
+  logger.debug`Response body: ${responseText}`;
+
+  if (!response.ok) {
+    return {
+      status: response.status,
+      error: responseText,
+    };
+  }
+
+  let data: unknown;
+  try {
+    data = JSON.parse(responseText);
+  } catch {
+    data = responseText;
+  }
+
+  return {
+    status: response.status,
+    data,
+  };
+}
+
+async function fetchEnrollmentsPage(
+  config: Config,
+  url: string,
+  retryOnAuth = true
+): Promise<ApiResponse> {
+  const logger = getAppLogger();
+  const token = getCachedToken();
+
+  if (!token) {
+    throw new Error("No auth token available. Call getToken first.");
+  }
+
+  logger.debug`GET ${url}`;
+
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      authorization: token,
+      "api-key": config.apiKey,
+    },
+  });
+
+  if (response.status === 401 && retryOnAuth) {
+    logger.info`Token expired, refreshing...`;
+    await refreshToken(config);
+    return fetchEnrollmentsPage(config, url, false);
+  }
+
+  const responseText = await response.text();
+
+  logger.debug`Response status: ${response.status}`;
+  logger.debug`Response body: ${responseText}`;
+
+  if (!response.ok) {
+    return {
+      status: response.status,
+      error: responseText,
+    };
+  }
+
+  let data: unknown;
+  try {
+    data = JSON.parse(responseText);
+  } catch {
+    data = responseText;
+  }
+
+  return {
+    status: response.status,
+    data,
+  };
+}
+
+export async function getEnrollments(
+  config: Config,
+  termCode: string,
+  studentId?: string
+): Promise<ApiResponse> {
+  const base = `${config.apiBaseUrl}/cart/v1/admin/enrollments/${encodeURIComponent(termCode)}`;
+
+  if (studentId) {
+    return fetchEnrollmentsPage(config, `${base}?customer=${encodeURIComponent(studentId)}`);
+  }
+
+  const logger = getAppLogger();
+  const pageSize = 2000;
+  const allEnrollments: unknown[] = [];
+
+  for (let page = 0; ; page++) {
+    const response = await fetchEnrollmentsPage(
+      config,
+      `${base}?page=${page}&pageSize=${pageSize}`
+    );
+    if (response.error) return response;
+
+    const wrapper = response.data as { enrollments?: unknown[] } | undefined;
+    const enrollments = wrapper?.enrollments ?? [];
+    allEnrollments.push(...enrollments);
+
+    logger.debug`Fetched page ${page}: ${enrollments.length} enrollments (running total: ${allEnrollments.length})`;
+
+    if (enrollments.length < pageSize) break;
+  }
+
+  return {
+    status: 200,
+    data: { enrollments: allEnrollments },
+  };
+}
+
 export interface DeleteAdoptionFilter {
   dept: string;
   course?: string;

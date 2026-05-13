@@ -12,7 +12,9 @@
     "wps:add-adoptions": "bun run src/add-adoptions.ts",
     "wps:delete-adoptions": "bun run src/delete-adoptions.ts",
     "wps:validate-charge-file": "bun run src/validate-charge-file.ts",
-    "wps:validate-opt-outs": "bun run src/validate-opt-outs.ts"
+    "wps:validate-opt-outs": "bun run src/validate-opt-outs.ts",
+    "wps:get-enrollments": "bun run src/get-enrollments.ts",
+    "wps:get-customer": "bun run src/get-customer.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"
