@@ -15,14 +15,18 @@ async function main() {
 
   const args = process.argv.slice(2);
   const dryRun = args.includes("--dry-run");
+  const sendUnresolvedAdoptions = args.includes("--send-unresolved-adoptions");
   const csvPath = args.find((a) => !a.startsWith("--"));
   if (!csvPath) {
-    console.error("Usage: bun run wps:add-opt-outs <csv-file-path> [--dry-run]");
+    console.error("Usage: bun run wps:add-opt-outs <csv-file-path> [--dry-run] [--send-unresolved-adoptions]");
     process.exit(1);
   }
 
   if (dryRun) {
     logger.info`DRY RUN mode — no opt-outs will be posted`;
+  }
+  if (sendUnresolvedAdoptions) {
+    logger.info`SEND UNRESOLVED ADOPTIONS mode — opt-outs with unresolved adoptions will be sent using CSV term`;
   }
   logger.info`Starting opt-out upload from ${csvPath}`;
 
@@ -72,19 +76,36 @@ async function main() {
     );
 
     if (!adoption) {
-      logger.error`Record ${i + 1} skipped: no matching adoption for CRN ${row.crn} ISBN ${row.ISBN} (${row.courseandsectioncode})`;
-      skippedCount++;
+      if (!sendUnresolvedAdoptions) {
+        logger.error`Record ${i + 1} skipped: no matching adoption for CRN ${row.crn} ISBN ${row.ISBN} (${row.courseandsectioncode})`;
+        skippedCount++;
+        unresolvedAdoptionRows.push(row);
+        continue;
+      }
+      logger.warn`Record ${i + 1}: no matching adoption for CRN ${row.crn} ISBN ${row.ISBN} (${row.courseandsectioncode}) — sending anyway`;
       unresolvedAdoptionRows.push(row);
-      continue;
+      skippedCount++;
     }
 
-    const resolvedTermCode = adoption.termCode!;
-
-    // Warn if the resolved term differs from what the CSV term would have mapped to
+    let resolvedTermCode: string;
     const csvMappedTerm = mapTermCode(row.term, termMapping);
-    if (csvMappedTerm && csvMappedTerm !== resolvedTermCode) {
-      logger.warn`Record ${i + 1}: CSV term "${row.term}" maps to ${csvMappedTerm}, but CRN ${row.crn} resolved to ${resolvedTermCode}`;
-      termMismatchCount++;
+
+    if (adoption) {
+      resolvedTermCode = adoption.termCode!;
+
+      // Warn if the resolved term differs from what the CSV term would have mapped to
+      if (csvMappedTerm && csvMappedTerm !== resolvedTermCode) {
+        logger.warn`Record ${i + 1}: CSV term "${row.term}" maps to ${csvMappedTerm}, but CRN ${row.crn} resolved to ${resolvedTermCode}`;
+        termMismatchCount++;
+      }
+    } else {
+      if (!csvMappedTerm) {
+        logger.error`Record ${i + 1} skipped: no adoption and no CSV term mapping for "${row.term}"`;
+        errorCount++;
+        continue;
+      }
+      resolvedTermCode = csvMappedTerm;
+      logger.info`Record ${i + 1}: using CSV term mapping ${resolvedTermCode} for unresolved adoption`;
     }
 
     const dto = mapCSVToDTO(row, resolvedTermCode);
