@@ -1,26 +1,28 @@
 import { loadConfig } from "./config";
 import { setupLogger, getAppLogger } from "./lib/logger";
 import { getToken } from "./lib/auth";
-import { getAdoptions } from "./lib/api";
+import { getAdoptionFiltered } from "./lib/api";
 
 async function main() {
   await setupLogger();
   const logger = getAppLogger();
 
   const term = process.argv[2];
+  const dept = process.argv[3];
+  const crn = process.argv[4];
 
-  if (!term) {
-    console.error("Usage: bun wps:adoptions <term>");
-    console.error("Example: bun wps:adoptions Spr2025");
+  if (!term || !dept) {
+    console.error("Usage: bun run wps:get-adoptions <term> <dept> [crn]");
+    console.error("Example: bun run wps:get-adoptions 26/01 ACC");
+    console.error("Example: bun run wps:get-adoptions 26/01 ACC 235907");
     process.exit(1);
   }
-
-  logger.info`Fetching adoptions for term=${term}...`;
 
   const config = loadConfig();
   await getToken(config);
 
-  const response = await getAdoptions(config, term);
+  logger.info`Fetching adoptions for term=${term} dept=${dept}${crn ? ` crn=${crn}` : ""}...`;
+  const response = await getAdoptionFiltered(config, term, { dept, crn });
 
   if (response.error) {
     logger.error`Adoption fetch failed: ${response.status} - ${response.error}`;

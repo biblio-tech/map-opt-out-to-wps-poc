@@ -4,9 +4,6 @@ export interface CSVRow {
   crn: string;
   courseandsectioncode: string;
   studentid: string;
-  firstname: string;
-  lastname: string;
-  email: string;
   ISBN: string;
   title: string;
   author: string;
@@ -46,4 +43,77 @@ export interface ApiResponse<T = unknown> {
   status: number;
   data?: T;
   error?: string;
+}
+
+export interface Enrollment {
+  termCode?: string;
+  deptCode?: string;
+  courseCode?: string;
+  section?: string;
+  crn?: string;
+  customer?: string;
+  faLoad?: string;
+  academicCareer?: string;
+  startOn?: string;
+  endOn?: string;
+  censusDate?: string;
+  createdAt?: number;
+}
+
+export interface EnrollmentWrapper {
+  enrollments: Enrollment[];
+}
+
+export interface StudentInfoDTO {
+  firstName?: string;
+  lastName: string;
+  email?: string;
+  address?: string;
+  address2?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postal?: string;
+  phone?: string;
+  id?: string;
+  posId?: string;
+  studentId?: string;
+}
+
+export interface Adoption {
+  termCode?: string;
+  crn?: string;
+  deptCode: string;
+  courseCode: string;
+  section: string;
+  costToStore?: number;
+  costToStudent: number;
+  publisher?: string;
+  itemScanCode: string;
+  itemName: string;
+  categories?: string[];
+}
+
+export interface AdoptionWrapper {
+  adoptions: Adoption[];
+}
+
+export interface UploadMessage {
+  entryNumber: number;
+  messages: string[];
+}
+
+export interface UploadResult {
+  uploadUuid?: string;
+  filename?: string;
+  result?: string;
+  startedAt?: number;
+  endedAt?: number;
+  totalRecords: number;
+  totalErrors: number;
+  successfulRecords: number;
+  warningRecords: number;
+  errorRecords: number;
+  warnings: UploadMessage[];
+  errors: UploadMessage[];
 }

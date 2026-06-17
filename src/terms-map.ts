@@ -42,11 +42,25 @@ async function main() {
     process.exit(1);
   }
 
-  // Build mappings from name -> code
+  // Build mappings from name -> code, warning on duplicate names
   const mappings: Record<string, string> = {};
+  const namesSeen = new Map<string, string[]>();
   for (const term of termWrapper.terms) {
     if (term.name && term.code) {
-      mappings[term.name] = term.code;
+      const codes = namesSeen.get(term.name) ?? [];
+      codes.push(term.code);
+      namesSeen.set(term.name, codes);
+    }
+  }
+
+  for (const [name, codes] of namesSeen) {
+    if (codes.length > 1) {
+      logger.warn`Duplicate term name "${name}" maps to codes: ${codes.join(", ")}`;
+      for (const code of codes) {
+        mappings[`${name} (${code})`] = code;
+      }
+    } else {
+      mappings[name] = codes[0]!;
     }
   }
 
@@ -55,7 +69,7 @@ async function main() {
     mappings,
   };
 
-  const outputPath = "term-code-mapping.json";
+  const outputPath = "data/term-code-mapping.json";
   await Bun.write(outputPath, JSON.stringify(mapping, null, 2) + "\n");
 
   logger.info`Wrote ${Object.keys(mappings).length} term mappings to ${outputPath}`;

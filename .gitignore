@@ -3,4 +3,5 @@
 .env
 logs/
 node_modules/
-term-code-mapping.json
+data/
+.DS_Store
